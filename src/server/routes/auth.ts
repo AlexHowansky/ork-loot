@@ -24,6 +24,7 @@ function me(ctx: Ctx): Me {
           name: character.name,
           campaignId: campaign.id,
           campaignName: campaign.name,
+          campaignImage: campaign.backgroundImage,
         })
         .from(character)
         .innerJoin(campaign, eq(campaign.id, character.campaignId))

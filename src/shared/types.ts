@@ -12,6 +12,7 @@ export interface PlayerCharacter {
   name: string;
   campaignId: number;
   campaignName: string;
+  campaignImage: string | null;
 }
 
 export interface CampaignInfo {

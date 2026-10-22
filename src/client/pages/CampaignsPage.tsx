@@ -5,6 +5,7 @@ import { keys, useCampaigns } from "../queries.ts";
 import { LoadError, Loading } from "../components/Layout.tsx";
 import { CampaignForm } from "../components/CampaignForm.tsx";
 import { Money } from "../components/Money.tsx";
+import { CampaignCover } from "../components/CampaignCover.tsx";
 import { Icon, faCalendarDays, faPlus, faUsers } from "../components/Icon.tsx";
 
 export function CampaignsPage() {
@@ -31,14 +32,10 @@ export function CampaignsPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {data.map((c) => (
             <Link key={c.id} to={`/campaigns/${c.id}`} className="card bg-base-100 shadow transition hover:shadow-lg">
-              <figure className="h-32 bg-base-300">
-                {c.backgroundImage && (
-                  <img src={`/uploads/${c.backgroundImage}`} alt="" className="h-full w-full object-cover" />
-                )}
-              </figure>
+              <CampaignCover image={c.backgroundImage} />
               <div className="card-body p-4">
                 <h2 className="card-title">{c.name}</h2>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-base-content/70">

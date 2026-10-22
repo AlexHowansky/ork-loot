@@ -120,6 +120,8 @@ they have claimed from the pool.
 
 * A campaign's background image is uploaded to local disk (PNG, JPEG or WebP,
   up to 5 MB, checked by content rather than by the type the browser claims).
+  The GM's campaign list and the player's character picker show it cropped
+  to a square at the top of each card.
 
 * GMs can add zero or more characters to a campaign. Each character has a name
   (required, unique within the campaign regardless of case) and a number of
@@ -134,7 +136,8 @@ they have claimed from the pool.
 
 * Players can provide a code to take ownership of one character in one campaign.
   This session does not expire. One browser can hold several characters, with
-  a picker to switch between them, and can choose to forget a character.
+  a picker to switch between them, and can choose to forget a character. The
+  picker shows a card per character, with its campaign's image.
 
 * Players see the whole campaign: every loot item, every character's shares
   and projected payout, and the split history. Join codes are GM-only.
