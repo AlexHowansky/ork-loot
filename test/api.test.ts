@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import { addGm, Client, makeApp } from "./helpers.ts";
+import { campaign } from "../src/server/db/schema.ts";
 import type { CampaignView, PlayView } from "../src/shared/types.ts";
 
 let ctx: ReturnType<typeof makeApp>;
@@ -104,6 +106,26 @@ describe("campaign access", () => {
     const { campaignId } = await seed();
     const res = await gmA.post(`/api/campaigns/${campaignId}/characters`, { name: "amiri" });
     expect(res.status).toBe(409);
+  });
+
+  test("decimals lock while petty cash is held", async () => {
+    const { campaignId } = await seed();
+    ctx.db.update(campaign).set({ pettyCash: 3 }).where(eq(campaign.id, campaignId)).run();
+    const res = await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, currencyDecimals: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.fields.currencyDecimals).toBeDefined();
+  });
+
+  test("petty cash starts at 0, is shown to players and can't be set by hand", async () => {
+    const { campaignId, view } = await seed();
+    expect((await view()).campaign.pettyCash).toBe(0);
+    const res = await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, pettyCash: 500 });
+    expect(res.status).toBe(200);
+    expect(res.body.pettyCash).toBe(0);
+    const code = (await view()).characters[0]!.joinCode!;
+    const { player, res: joined } = await join(code);
+    const play = await player.get<PlayView>(`/api/play/${joined.body.characterId}`);
+    expect(play.body.campaign.pettyCash).toBe(0);
   });
 
   test("decimals lock once loot exists", async () => {

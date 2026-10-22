@@ -54,6 +54,8 @@ export const campaign = sqliteTable(
     backgroundImage: text("background_image"),
     currencyLabel: text("currency_label").notNull().default("gp"),
     currencyDecimals: integer("currency_decimals").notNull().default(2),
+    /** Split leftovers that don't divide evenly, in minor units. */
+    pettyCash: integer("petty_cash").notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a3d11346-75a9-4bb3-af48-14ca3f5c7cb4",
+  "id": "9bd96df9-e210-4647-8592-d0e87c6f2146",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -57,6 +57,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": 2
+        },
+        "petty_cash": {
+          "name": "petty_cash",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",

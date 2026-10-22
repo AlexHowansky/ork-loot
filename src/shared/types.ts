@@ -21,6 +21,8 @@ export interface CampaignInfo {
   backgroundImage: string | null;
   currencyLabel: string;
   currencyDecimals: number;
+  /** Split leftovers that don't divide evenly. Not editable by hand. */
+  pettyCash: number;
 }
 
 export interface CampaignSummary extends CampaignInfo {

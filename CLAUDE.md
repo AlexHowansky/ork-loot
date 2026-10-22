@@ -82,6 +82,12 @@ An app user invited by a code. The code ties the user to one character.
 A campaign belongs to one GM and has zero or more sessions. Campaigns have
 names, start dates, optional background images, and zero or more characters.
 
+### Petty Cash
+
+A per-campaign amount, in the campaign's currency, that holds what's left over
+when a split can't be divided evenly. It accumulates as splits run and isn't
+edited by hand. The GM and players see it next to the party fund.
+
 ### Session
 
 A single instance of game play, typically a few hours long. A session belongs to
@@ -109,7 +115,8 @@ they have claimed from the pool.
 * GMs can view, create, edit, and delete their own campaigns.
 
 * Each campaign sets its currency: a label (e.g. "gp") and 0 to 3 decimal
-  places. The decimal places are locked once the campaign has any loot.
+  places. The decimal places are locked once the campaign has any loot or
+  any petty cash.
 
 * A campaign's background image is uploaded to local disk (PNG, JPEG or WebP,
   up to 5 MB, checked by content rather than by the type the browser claims).

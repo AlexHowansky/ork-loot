@@ -30,6 +30,7 @@ export function campaignInfo(c: Campaign): CampaignInfo {
     backgroundImage: c.backgroundImage,
     currencyLabel: c.currencyLabel,
     currencyDecimals: c.currencyDecimals,
+    pettyCash: c.pettyCash,
   };
 }
 

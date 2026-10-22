@@ -50,6 +50,13 @@ export function campaignRoutes(r: Router) {
           { currencyDecimals: "Locked because loot has been recorded." },
         );
       }
+      // Petty cash is held in minor units, so its meaning would change too.
+      if (c.pettyCash !== 0) {
+        throw badRequest(
+          "Decimal places can't change while there's petty cash.",
+          { currencyDecimals: "Locked because petty cash is held." },
+        );
+      }
     }
     const row = ctx.db
       .update(campaign)

@@ -6,6 +6,7 @@ CREATE TABLE `campaign` (
 	`background_image` text,
 	`currency_label` text DEFAULT 'gp' NOT NULL,
 	`currency_decimals` integer DEFAULT 2 NOT NULL,
+	`petty_cash` integer DEFAULT 0 NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
 	FOREIGN KEY (`gm_id`) REFERENCES `gm`(`id`) ON UPDATE no action ON DELETE cascade
