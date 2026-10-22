@@ -1,0 +1,35 @@
+import { join } from "node:path";
+import { createApp } from "./app.ts";
+import { openDb } from "./db/client.ts";
+import { logger } from "./lib/logger.ts";
+import { MAX_IMAGE_BYTES } from "./lib/upload.ts";
+import homepage from "../client/index.html";
+
+const root = join(import.meta.dir, "../..");
+const production = process.env.NODE_ENV === "production";
+const dbPath = process.env.DB_PATH ?? join(root, "data/app.db");
+const uploadDir = process.env.UPLOAD_DIR ?? join(root, "data/uploads");
+
+const app = createApp({
+  db: openDb(dbPath),
+  uploadDir,
+  secureCookies: production || process.env.SECURE_COOKIES === "1",
+});
+
+const server = Bun.serve({
+  port: Number(process.env.PORT ?? 3000),
+  development: !production && { hmr: true, console: true },
+  // Room for a 5 MB image plus multipart overhead.
+  maxRequestBodySize: MAX_IMAGE_BYTES + 512 * 1024,
+  routes: {
+    "/api/*": (req, srv) => app.handle(req, srv.requestIP(req)?.address),
+    "/uploads/*": (req, srv) => app.handle(req, srv.requestIP(req)?.address),
+    "/*": homepage,
+  },
+  error(err) {
+    logger.error("server error", { err });
+    return new Response("Something went wrong on our side.", { status: 500 });
+  },
+});
+
+logger.info("ORK Phat Loot listening", { url: server.url.href });
