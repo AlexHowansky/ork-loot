@@ -9,11 +9,10 @@ const COLOR: Record<LootStatus, string> = {
   left: "badge-ghost",
 };
 
-export function StatusBadge({ status, who }: { status: LootStatus; who?: string | null }) {
+export function StatusBadge({ status }: { status: LootStatus }) {
   return (
     <span className={`badge badge-sm badge-soft whitespace-nowrap ${COLOR[status]}`}>
       {STATUS_LABEL[status]}
-      {who ? ` · ${who}` : ""}
     </span>
   );
 }

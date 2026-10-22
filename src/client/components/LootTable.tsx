@@ -169,6 +169,7 @@ export function LootTable({
                 <th className="hidden text-right sm:table-cell">Market</th>
                 <th className="text-right">Subtotal</th>
                 <th className="hidden sm:table-cell">Status</th>
+                <th className="hidden sm:table-cell">Claimed by</th>
                 <th className="text-right">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -178,6 +179,7 @@ export function LootTable({
               {rows.map((item) => {
                 const mine = mode.kind === "player" && item.characterId === mode.characterId;
                 const session = sessionById.get(item.sessionId);
+                const claimant = item.characterId !== null ? nameById.get(item.characterId) : undefined;
                 return (
                   <tr key={item.id} className={mine ? "bg-warning/10" : ""}>
                     <td className="min-w-40">
@@ -192,11 +194,9 @@ export function LootTable({
                           item.name
                         )}
                       </div>
-                      <div className="sm:hidden">
-                        <StatusBadge
-                          status={item.status}
-                          who={item.characterId !== null ? nameById.get(item.characterId) : null}
-                        />
+                      <div className="flex flex-wrap items-center gap-x-1 sm:hidden">
+                        <StatusBadge status={item.status} />
+                        {claimant && <span className="text-xs text-base-content/70">{claimant}</span>}
                       </div>
                       {item.description && (
                         <div className="max-w-md text-xs whitespace-pre-line text-base-content/60">
@@ -222,11 +222,9 @@ export function LootTable({
                       <Money amount={item.subtotal} campaign={campaign} />
                     </td>
                     <td className="hidden sm:table-cell">
-                      <StatusBadge
-                        status={item.status}
-                        who={item.characterId !== null ? nameById.get(item.characterId) : null}
-                      />
+                      <StatusBadge status={item.status} />
                     </td>
+                    <td className="hidden whitespace-nowrap sm:table-cell">{claimant}</td>
                     <td className="text-right whitespace-nowrap">
                       {gm ? (
                         <>

@@ -153,6 +153,9 @@ they have claimed from the pool.
 * When a loot item has a link, its name in the loot table links to it, in a
   new tab, for the GM and players alike.
 
+* The loot table shows each item's status as a pill on its own, and the
+  character who claimed or bought it in a separate "Claimed by" column.
+
 * Statuses are as follows:
     * active: In the loot pool and available to be claimed. Will be sold
               during a loot split. The default for new items.
