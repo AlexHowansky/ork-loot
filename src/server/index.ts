@@ -18,7 +18,10 @@ const app = createApp({
 
 const server = Bun.serve({
   port: Number(process.env.PORT ?? 3000),
-  development: !production && { hmr: true, console: true },
+  // No browser HMR: Bun's HMR path serves daisyUI's CSS still nested, which
+  // breaks its pseudo-element rules (select arrows, date pickers, ::backdrop).
+  // `bun --hot` still reloads the server, so a refresh picks up changes.
+  development: !production && { hmr: false, console: true },
   // Room for a 5 MB image plus multipart overhead.
   maxRequestBodySize: MAX_IMAGE_BYTES + 512 * 1024,
   routes: {

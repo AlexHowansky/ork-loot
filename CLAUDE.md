@@ -192,7 +192,8 @@ they have claimed from the pool.
 
 ## Development
 
-* `bun run dev` starts the server with hot reload on port 3000.
+* `bun run dev` starts the server with hot reload on port 3000. Browser HMR
+  is off (it breaks daisyUI CSS), so refresh the page after client changes.
 * `bun run gm create|passwd <username>` and `bun run gm list` manage GMs.
 * `bun test` runs the unit, API and UI-rule tests; `bun run typecheck` runs
   tsc.
