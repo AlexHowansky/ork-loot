@@ -48,6 +48,7 @@ CREATE TABLE `loot` (
 	`session_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`description` text,
+	`link` text,
 	`quantity` integer DEFAULT 1 NOT NULL,
 	`value` integer,
 	`market_pct` integer DEFAULT 50 NOT NULL,

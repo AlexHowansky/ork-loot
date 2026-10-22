@@ -39,6 +39,7 @@ export function lootView(row: Loot): LootView {
     sessionId: row.sessionId,
     name: row.name,
     description: row.description,
+    link: row.link,
     quantity: row.quantity,
     value: row.value,
     marketPct: row.marketPct,

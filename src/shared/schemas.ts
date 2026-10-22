@@ -24,6 +24,26 @@ const optionalText = (max: number) =>
     .nullish()
     .transform((s) => (s ? s : null));
 
+/** An optional http(s) URL; other schemes such as javascript: are refused. */
+const optionalLink = z
+  .string()
+  .trim()
+  .max(2000, { error: "Keep the link to 2000 characters." })
+  .nullish()
+  .transform((s) => (s ? s : null))
+  .refine((s) => s === null || isWebUrl(s), {
+    error: "Use a web address starting with http:// or https://.",
+  });
+
+function isWebUrl(s: string): boolean {
+  try {
+    const { protocol } = new URL(s);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export const loginSchema = z.object({
   username: z.string().trim().min(1, { error: "Enter your username." }),
   password: z.string().min(1, { error: "Enter your password." }),
@@ -67,6 +87,7 @@ export const sessionSchema = z.object({
 const lootFields = z.object({
   name: name("Name", 200),
   description: optionalText(2000),
+  link: optionalLink,
   quantity: z
     .int({ error: "Quantity must be a whole number." })
     .min(1, { error: "Quantity must be at least 1." })

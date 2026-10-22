@@ -185,6 +185,16 @@ describe("claims", () => {
     expect(claimed.characterId).toBe(amiri.id);
   });
 
+  test("a split stack keeps its link and merges back on release", async () => {
+    const { potion, amiri, view } = await withPotions();
+    await gmA.patch(`/api/loot/${potion.id}`, { link: "https://example.com/potion" });
+    await amiri.client.post(`/api/play/${amiri.id}/claim`, { lootId: potion.id, quantity: 2 });
+    const claimed = (await view()).loot.find((l) => l.status === "claimed")!;
+    expect(claimed.link).toBe("https://example.com/potion");
+    await amiri.client.post(`/api/play/${amiri.id}/release`, { lootId: claimed.id });
+    expect((await view()).loot).toHaveLength(1);
+  });
+
   test("an item claimed in full can't be claimed again", async () => {
     const { potion, amiri, ezren } = await withPotions();
     await amiri.client.post(`/api/play/${amiri.id}/claim`, { lootId: potion.id, quantity: 5 });
@@ -294,6 +304,18 @@ describe("loot split", () => {
     const gem = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gem", quantity: 4, value: 900, marketPct: 80 })).body;
     const res = await gmA.patch(`/api/loot/${gem.id}`, { status: "party" });
     expect(res.body).toMatchObject({ quantity: 4, value: 900, marketPct: 80, status: "party" });
+  });
+
+  test("links must be http or https web addresses", async () => {
+    const { sessionId } = await seed();
+    for (const link of ["javascript:alert(1)", "data:text/html,hi", "not a url"]) {
+      const res = await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Map", link });
+      expect(res.status).toBe(400);
+      expect(res.body.fields.link).toBeDefined();
+    }
+    const map = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Map", link: " https://example.com/map " })).body;
+    expect(map.link).toBe("https://example.com/map");
+    expect((await gmA.patch(`/api/loot/${map.id}`, { link: "" })).body.link).toBeNull();
   });
 
   test("claimed loot needs a character from the campaign", async () => {

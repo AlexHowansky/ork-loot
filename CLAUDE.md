@@ -136,9 +136,12 @@ they have claimed from the pool.
 
 * The GM can view, create, edit, and delete loot in a session. Each loot entry
   includes session (required), name (required, not unique), description
-  (optional), quantity (required, default 1), value (optional), market
-  percentage (default 50% because we only get half value when we sell) and
-  status.
+  (optional), link (optional, http or https only), quantity (required,
+  default 1), value (optional), market percentage (default 50% because we
+  only get half value when we sell) and status.
+
+* When a loot item has a link, its name in the loot table links to it, in a
+  new tab, for the GM and players alike.
 
 * Statuses are as follows:
     * active: In the loot pool and available to be claimed. Will be sold

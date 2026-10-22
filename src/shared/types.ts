@@ -57,6 +57,7 @@ export interface LootView {
   sessionId: number;
   name: string;
   description: string | null;
+  link: string | null;
   quantity: number;
   value: number | null;
   marketPct: number;

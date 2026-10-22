@@ -32,6 +32,7 @@ export function LootForm({
   const [sessionId, setSessionId] = useState(item?.sessionId ?? defaultSessionId ?? view.sessions[0]?.id ?? 0);
   const [name, setName] = useState(item?.name ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
+  const [link, setLink] = useState(item?.link ?? "");
   const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
   const [value, setValue] = useState(toInput(item?.value ?? null, decimals));
   const [marketPct, setMarketPct] = useState(String(item?.marketPct ?? 50));
@@ -56,6 +57,7 @@ export function LootForm({
       const body = {
         name,
         description: description || null,
+        link: link || null,
         quantity: Number(quantity),
         value: parsedValue,
         marketPct: Number(marketPct),
@@ -68,6 +70,7 @@ export function LootForm({
       if (again) {
         setName("");
         setDescription("");
+        setLink("");
         setQuantity("1");
         setValue("");
         setAdded((n) => n + 1);
@@ -125,6 +128,15 @@ export function LootForm({
             placeholder="Optional"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+          />
+        </Field>
+        <Field label="Link" error={s.fields.link}>
+          <input
+            type="url"
+            className={withError("input w-full", s.fields.link)}
+            placeholder="Optional, e.g. https://…"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
           />
         </Field>
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-3">

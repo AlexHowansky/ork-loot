@@ -2,6 +2,7 @@ export { FontAwesomeIcon as Icon } from "@fortawesome/react-fontawesome";
 export {
   faArrowRightFromBracket,
   faArrowRotateLeft,
+  faArrowUpRightFromSquare,
   faArrowsRotate,
   faCircleHalfStroke,
   faCoins,

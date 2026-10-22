@@ -10,7 +10,7 @@ import { LootForm } from "./LootForm.tsx";
 import { ClaimForm } from "./SimpleForms.tsx";
 import { useConfirm } from "./Confirm.tsx";
 import { useToast } from "./Toast.tsx";
-import { Icon, faArrowRotateLeft, faHandHolding, faPen, faPlus, faTrash } from "./Icon.tsx";
+import { Icon, faArrowRotateLeft, faArrowUpRightFromSquare, faHandHolding, faPen, faPlus, faTrash } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
 export type StatusFilter = "pool" | "history" | "all";
@@ -181,7 +181,17 @@ export function LootTable({
                 return (
                   <tr key={item.id} className={mine ? "bg-warning/10" : ""}>
                     <td className="min-w-40">
-                      <div className="font-medium">{item.name}</div>
+                      <div className="font-medium">
+                        {item.link ? (
+                          <a href={item.link} target="_blank" rel="noopener noreferrer" className="link link-hover">
+                            {item.name}
+                            <Icon icon={faArrowUpRightFromSquare} className="ml-1 text-xs text-base-content/50" />
+                            <span className="sr-only"> (opens in a new tab)</span>
+                          </a>
+                        ) : (
+                          item.name
+                        )}
+                      </div>
                       <div className="sm:hidden">
                         <StatusBadge
                           status={item.status}

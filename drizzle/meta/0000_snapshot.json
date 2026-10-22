@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "88cec738-88eb-4279-b8f6-5a39167f90c3",
+  "id": "a3d11346-75a9-4bb3-af48-14ca3f5c7cb4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -335,6 +335,13 @@
         },
         "description": {
           "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "link": {
+          "name": "link",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

@@ -138,6 +138,7 @@ export const loot = sqliteTable(
       .references(() => session.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    link: text("link"),
     quantity: integer("quantity").notNull().default(1),
     value: integer("value"),
     marketPct: integer("market_pct").notNull().default(50),
