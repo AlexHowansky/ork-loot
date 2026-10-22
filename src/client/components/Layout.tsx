@@ -61,7 +61,7 @@ export function Layout() {
       <header className="navbar bg-base-100 shadow-sm min-h-12 px-3 py-1">
         <div className="navbar-start">
           <Link to="/" className="btn btn-ghost btn-sm text-lg font-bold">
-            <Icon icon={faDragon} className="text-primary" /> ORK Phat Loot
+            <Icon icon={faDragon} className="text-primary" /> Phat Loot
           </Link>
         </div>
         <div className="navbar-end gap-1">

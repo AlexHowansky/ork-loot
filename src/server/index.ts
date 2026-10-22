@@ -35,4 +35,4 @@ const server = Bun.serve({
   },
 });
 
-logger.info("ORK Phat Loot listening", { url: server.url.href });
+logger.info("Phat Loot listening", { url: server.url.href });
