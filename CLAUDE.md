@@ -196,9 +196,12 @@ they have claimed from the pool.
     * Update each claimed item to bought. Update each active item to sold.
 
 * Claimed items are valued at their market-adjusted subtotal, the same figure
-  that goes into the total. Shares are rounded to whole minor units, and any
-  leftover units go to the largest remainders so the payouts add up to the
-  total exactly.
+  that goes into the total. Every share is worth exactly the same: the total
+  divided by the number of shares, rounded down to a whole minor unit. A
+  character's share is that amount times their shares, before claims are
+  subtracted. Whatever doesn't divide evenly is added to Petty Cash, but only
+  when the split is run; the split preview shows how much that will be, and
+  the split history shows how much each split added.
 
 * The GM sees a preview of the split before running it. Every split is kept
   in a history showing each character's share, claims and payout.

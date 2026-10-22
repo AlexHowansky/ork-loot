@@ -92,6 +92,8 @@ export interface SplitView {
   createdAt: number;
   total: number;
   totalShares: number;
+  /** What the shares couldn't divide evenly; it goes to petty cash. */
+  leftover: number;
   shares: SplitShareView[];
 }
 

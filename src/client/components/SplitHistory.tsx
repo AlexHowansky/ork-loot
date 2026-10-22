@@ -52,6 +52,11 @@ export function SplitHistory({ view }: { view: CampaignView }) {
             <span className="text-base-content/70">
               Sold for <Money amount={split.total} campaign={view.campaign} />
             </span>
+            {split.leftover > 0 && (
+              <span className="text-base-content/70">
+                <Money amount={split.leftover} campaign={view.campaign} /> to petty cash
+              </span>
+            )}
           </summary>
           <div className="collapse-content">
             <SplitTable split={split} campaign={view.campaign} />

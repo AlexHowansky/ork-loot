@@ -121,7 +121,9 @@ export function CampaignPage() {
           campaign={campaign}
           onClose={() => setSplitting(false)}
           onDone={(split) => {
-            toast(`Split done: ${formatMoney(split.total, campaign.currencyDecimals, campaign.currencyLabel)} shared out.`);
+            const money = (n: number) => formatMoney(n, campaign.currencyDecimals, campaign.currencyLabel);
+            const petty = split.leftover > 0 ? `, ${money(split.leftover)} to petty cash` : "";
+            toast(`Split done: ${money(split.total - split.leftover)} shared out${petty}.`);
             refresh();
           }}
         />

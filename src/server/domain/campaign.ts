@@ -94,7 +94,7 @@ export function computePool(
       }
     }
   }
-  const allocations = allocate(
+  const { rows: allocations, leftover } = allocate(
     sellable,
     characters.map((c) => ({
       id: c.id,
@@ -108,7 +108,7 @@ export function computePool(
     claimed: claimedTotal,
     totalShares: characters.reduce((n, c) => n + c.shares, 0),
   };
-  return { pool, allocations };
+  return { pool, allocations, leftover };
 }
 
 export function listCampaigns(db: Db, gmId: number): CampaignSummary[] {
@@ -214,6 +214,10 @@ export function splitHistory(db: Db, campaignId: number): SplitView[] {
     createdAt: s.createdAt.getTime(),
     total: s.total,
     totalShares: s.totalShares,
+    // Whatever the shares didn't take went to petty cash.
+    leftover:
+      s.total -
+      shares.reduce((n, sh) => (sh.splitId === s.id ? n + sh.gross : n), 0),
     shares: shares
       .filter((sh) => sh.splitId === s.id)
       .map((sh) => ({

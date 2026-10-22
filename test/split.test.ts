@@ -40,28 +40,35 @@ describe("allocate", () => {
       { id: 2, shares: 1, claimed: 0 },
       { id: 3, shares: 2, claimed: 0 },
     ]);
-    expect(out.map((a) => a.gross)).toEqual([250, 250, 500]);
+    expect(out.perShare).toBe(250);
+    expect(out.leftover).toBe(0);
+    expect(out.rows.map((a) => a.gross)).toEqual([250, 250, 500]);
   });
 
-  test("always sums exactly to the total", () => {
+  test("every share is equal and the rest is left over", () => {
+    const rows = [
+      { id: 1, shares: 1, claimed: 0 },
+      { id: 2, shares: 2, claimed: 0 },
+      { id: 3, shares: 3, claimed: 0 },
+      { id: 4, shares: 1, claimed: 0 },
+    ];
     for (let total = 0; total < 200; total++) {
-      const out = allocate(total, [
-        { id: 1, shares: 1, claimed: 0 },
-        { id: 2, shares: 2, claimed: 0 },
-        { id: 3, shares: 3, claimed: 0 },
-        { id: 4, shares: 1, claimed: 0 },
-      ]);
-      expect(sum(out)).toBe(total);
+      const out = allocate(total, rows);
+      out.rows.forEach((a, i) => expect(a.gross).toBe(out.perShare * rows[i]!.shares));
+      expect(sum(out.rows) + out.leftover).toBe(total);
+      expect(out.leftover).toBeGreaterThanOrEqual(0);
+      expect(out.leftover).toBeLessThan(7);
     }
   });
 
-  test("gives leftover units to the largest remainders", () => {
+  test("keeps leftover units out of the shares", () => {
     const out = allocate(10, [
       { id: 1, shares: 1, claimed: 0 },
       { id: 2, shares: 1, claimed: 0 },
       { id: 3, shares: 1, claimed: 0 },
     ]);
-    expect(out.map((a) => a.gross)).toEqual([4, 3, 3]);
+    expect(out.rows.map((a) => a.gross)).toEqual([3, 3, 3]);
+    expect(out.leftover).toBe(1);
   });
 
   test("subtracts claims, allowing negative nets", () => {
@@ -69,11 +76,11 @@ describe("allocate", () => {
       { id: 1, shares: 1, claimed: 800 },
       { id: 2, shares: 1, claimed: 0 },
     ]);
-    expect(out[0]!.net).toBe(-300);
-    expect(out[1]!.net).toBe(500);
+    expect(out.rows[0]!.net).toBe(-300);
+    expect(out.rows[1]!.net).toBe(500);
   });
 
   test("handles no shares", () => {
-    expect(allocate(100, [])).toEqual([]);
+    expect(allocate(100, [])).toEqual({ perShare: 0, leftover: 100, rows: [] });
   });
 });

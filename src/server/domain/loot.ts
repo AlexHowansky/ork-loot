@@ -1,6 +1,7 @@
-import { and, eq, gte, inArray, isNull, ne, type SQL } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, ne, sql, type SQL } from "drizzle-orm";
 import type { DbOrTx as Db } from "../db/client.ts";
 import {
+  campaign,
   character,
   loot,
   session,
@@ -150,18 +151,19 @@ function splitPlan(db: Db, c: Campaign) {
     .where(eq(character.campaignId, c.id))
     .all();
   const rows = campaignLoot(db, c.id);
-  const { pool, allocations } = computePool(rows, chars);
-  return { chars, rows, pool, allocations };
+  const { pool, allocations, leftover } = computePool(rows, chars);
+  return { chars, rows, pool, allocations, leftover };
 }
 
 /** What a split would pay out right now, without changing anything. */
 export function previewSplit(db: Db, c: Campaign): SplitView {
-  const { chars, pool, allocations } = splitPlan(db, c);
+  const { chars, pool, allocations, leftover } = splitPlan(db, c);
   return {
     id: 0,
     createdAt: Date.now(),
     total: pool.sellable,
     totalShares: pool.totalShares,
+    leftover,
     shares: allocations
       .map((a, i) => ({
         characterId: a.id,
@@ -176,12 +178,13 @@ export function previewSplit(db: Db, c: Campaign): SplitView {
 }
 
 /**
- * Sells the pool: records each character's payout, marks claimed items
- * bought and active items sold. Party and left-behind items are untouched.
+ * Sells the pool: records each character's payout, adds the leftover to
+ * petty cash, marks claimed items bought and active items sold. Party and
+ * left-behind items are untouched.
  */
 export function runSplit(db: Db, c: Campaign): SplitView {
   const id = db.transaction((tx) => {
-    const { chars, rows, pool, allocations } = splitPlan(tx, c);
+    const { chars, rows, pool, allocations, leftover } = splitPlan(tx, c);
     if (chars.length === 0) {
       throw badRequest("Add at least one character before running a split.");
     }
@@ -207,6 +210,12 @@ export function runSplit(db: Db, c: Campaign): SplitView {
         })),
       )
       .run();
+    if (leftover > 0) {
+      tx.update(campaign)
+        .set({ pettyCash: sql`${campaign.pettyCash} + ${leftover}` })
+        .where(eq(campaign.id, c.id))
+        .run();
+    }
     const ids = (status: Loot["status"]) =>
       sold.filter((r) => r.status === status).map((r) => r.id);
     const claimedIds = ids("claimed");

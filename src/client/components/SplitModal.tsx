@@ -66,7 +66,15 @@ export function SplitModal({
                   : "There's no active or claimed loot to split."}
               </p>
             ) : (
-              <SplitTable split={preview.data} campaign={campaign} />
+              <>
+                <SplitTable split={preview.data} campaign={campaign} />
+                {preview.data.leftover > 0 && (
+                  <p className="mt-2 text-sm text-base-content/70">
+                    <Money amount={preview.data.leftover} campaign={campaign} className="font-semibold" /> doesn't
+                    divide evenly across the shares and will go to petty cash.
+                  </p>
+                )}
+              </>
             )}
           </>
         )}

@@ -111,6 +111,7 @@ export function campaignRoutes(r: Router) {
       campaignId: c.id,
       splitId: result.id,
       total: result.total,
+      leftover: result.leftover,
     });
     return result;
   });

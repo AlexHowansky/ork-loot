@@ -9,35 +9,39 @@ export interface Allocation extends AllocationInput {
   net: number;
 }
 
+export interface AllocationResult {
+  /** What one share is worth, in whole minor units. */
+  perShare: number;
+  /** Units left after paying every share; goes to petty cash. */
+  leftover: number;
+  rows: Allocation[];
+}
+
 /**
- * Divides `total` across characters by shares. Gross amounts are whole
- * minor units that always sum exactly to `total`: each character gets the
- * floor of their exact share, and the leftover units go to those with the
- * largest remainders (ties broken by input order). Net is gross minus the
- * value of what they claimed, and may be negative.
+ * Divides `total` across characters by shares. Every share is worth the
+ * same whole number of minor units, the floor of `total / totalShares`,
+ * and whatever that leaves undivided is returned as `leftover`. Net is
+ * gross minus the value of what they claimed, and may be negative.
  */
-export function allocate(total: number, rows: AllocationInput[]): Allocation[] {
+export function allocate(
+  total: number,
+  rows: AllocationInput[],
+): AllocationResult {
   const totalShares = rows.reduce((n, r) => n + r.shares, 0);
   if (totalShares === 0) {
-    return rows.map((r) => ({ ...r, gross: 0, net: -r.claimed }));
-  }
-  const parts = rows.map((r, i) => {
-    const exact = total * r.shares;
     return {
-      i,
-      gross: Math.floor(exact / totalShares),
-      rem: exact % totalShares,
+      perShare: 0,
+      leftover: total,
+      rows: rows.map((r) => ({ ...r, gross: 0, net: -r.claimed })),
     };
-  });
-  let leftover = total - parts.reduce((n, p) => n + p.gross, 0);
-  const order = [...parts].sort((a, b) => b.rem - a.rem || a.i - b.i);
-  for (const p of order) {
-    if (leftover <= 0) break;
-    p.gross++;
-    leftover--;
   }
-  return rows.map((r, i) => {
-    const gross = parts[i]!.gross;
-    return { ...r, gross, net: gross - r.claimed };
-  });
+  const perShare = Math.floor(total / totalShares);
+  return {
+    perShare,
+    leftover: total - perShare * totalShares,
+    rows: rows.map((r) => {
+      const gross = perShare * r.shares;
+      return { ...r, gross, net: gross - r.claimed };
+    }),
+  };
 }
