@@ -75,23 +75,32 @@ export function CampaignBoard({
         )}
       </div>
 
-      <div className="rounded-box bg-base-100 shadow">
-        <div role="tablist" className="tabs tabs-border px-2 pt-1">
+      <div>
+        <div role="tablist" className="tabs tabs-lift tabs-sm sm:tabs-md">
           {tabs.map(([key, label, count]) => (
             <button
               key={key}
+              id={`board-tab-${key}`}
               type="button"
               role="tab"
               aria-selected={tab === key}
+              aria-controls="board-panel"
               className={`tab gap-2 ${tab === key ? "tab-active" : ""}`}
               onClick={() => setTab(key)}
             >
               {label}
-              <span className="badge badge-sm badge-ghost">{count}</span>
+              <span className="badge badge-sm badge-ghost hidden sm:inline-flex">{count}</span>
             </button>
           ))}
+          {/* An empty tab carries the baseline on to the right-hand edge. */}
+          <div className="tab" aria-hidden="true" />
         </div>
-        <div className="p-3">
+        <div
+          id="board-panel"
+          role="tabpanel"
+          aria-labelledby={`board-tab-${tab}`}
+          className="rounded-b-box border border-t-0 border-base-300 bg-base-100 p-3 shadow"
+        >
           {tab === "loot" && (
             <LootTable
               view={view}
