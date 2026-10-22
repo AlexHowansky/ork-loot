@@ -4,3 +4,13 @@
 @plugin "daisyui" {
   themes: fantasy --default, dim --prefersdark;
 }
+
+/*
+ * Bun's dev server serves daisyUI's CSS still nested, and a nested `&` can't
+ * stand for a pseudo-element, so daisyUI's rule hiding the browser's own
+ * select arrow is lost and selects show two arrows. Restate it flat.
+ */
+.select::picker-icon,
+.select select::picker-icon {
+  display: none;
+}
