@@ -112,6 +112,22 @@ describe("campaign access", () => {
     expect(res.body.fields.startDate).toBeDefined();
   });
 
+  test("campaign base reference URL is optional and must be a web address", async () => {
+    const { campaignId } = await seed();
+    expect((await gmA.get(`/api/campaigns/${campaignId}`)).body.campaign.baseReferenceUrl).toBeNull();
+    const ok = await gmA.patch(`/api/campaigns/${campaignId}`, {
+      ...campaignBody,
+      baseReferenceUrl: "https://2e.aonprd.com/",
+    });
+    expect(ok.status).toBe(200);
+    expect(ok.body.baseReferenceUrl).toBe("https://2e.aonprd.com/");
+    const bad = await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, baseReferenceUrl: "javascript:alert(1)" });
+    expect(bad.status).toBe(400);
+    expect(bad.body.fields.baseReferenceUrl).toBeDefined();
+    const cleared = await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, baseReferenceUrl: "" });
+    expect(cleared.body.baseReferenceUrl).toBeNull();
+  });
+
   test("character names are unique within a campaign", async () => {
     const { campaignId } = await seed();
     const res = await gmA.post(`/api/campaigns/${campaignId}/characters`, { name: "amiri" });

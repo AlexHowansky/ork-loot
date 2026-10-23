@@ -22,6 +22,8 @@ export interface CampaignInfo {
   backgroundImage: string | null;
   currencyLabel: string;
   currencyDecimals: number;
+  /** Where item links will point, e.g. a rules reference site. */
+  baseReferenceUrl: string | null;
   /** Split leftovers that don't divide evenly. Not editable by hand. */
   pettyCash: number;
 }

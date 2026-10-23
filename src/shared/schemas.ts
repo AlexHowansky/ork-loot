@@ -67,6 +67,7 @@ export const campaignSchema = z.object({
     .int({ error: "Decimals must be a whole number." })
     .min(0)
     .max(MAX_DECIMALS, { error: `Decimals must be 0 to ${MAX_DECIMALS}.` }),
+  baseReferenceUrl: optionalLink,
 });
 
 export const characterSchema = z.object({

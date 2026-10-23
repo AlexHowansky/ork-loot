@@ -60,6 +60,9 @@ they have claimed from the pool.
   places. The decimal places are locked once the campaign has any loot or
   any petty cash.
 
+* Each campaign may set a base reference URL (an http or https address, e.g.
+  a rules reference site). It will be used to build links to item details.
+
 * A campaign's background image is uploaded to local disk (PNG, JPEG or WebP,
   up to 5 MB, checked by content rather than by the type the browser claims).
   The GM's campaign list and the player's character picker show it cropped

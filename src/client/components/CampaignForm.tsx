@@ -26,12 +26,13 @@ export function CampaignForm({
   const [startDate, setStartDate] = useState(campaign?.startDate ?? today());
   const [currencyLabel, setLabel] = useState(campaign?.currencyLabel ?? "gp");
   const [currencyDecimals, setDecimals] = useState(campaign?.currencyDecimals ?? 2);
+  const [baseReferenceUrl, setReferenceUrl] = useState(campaign?.baseReferenceUrl ?? "");
   const [image, setImage] = useState<File | null>(null);
   const s = useSubmit();
 
   const submit = () =>
     s.run(async () => {
-      const body = { name, startDate, currencyLabel, currencyDecimals };
+      const body = { name, startDate, currencyLabel, currencyDecimals, baseReferenceUrl };
       const saved = campaign
         ? await api.patch<CampaignInfo>(`/api/campaigns/${campaign.id}`, body)
         : await api.post<CampaignInfo>("/api/campaigns", body);
@@ -101,6 +102,19 @@ export function CampaignForm({
             </select>
           </Field>
         </div>
+        <Field
+          label="Base reference URL"
+          error={s.fields.baseReferenceUrl}
+          hint="Optional. Item links will point here."
+        >
+          <input
+            type="url"
+            className={withError("input w-full", s.fields.baseReferenceUrl)}
+            placeholder="https://"
+            value={baseReferenceUrl}
+            onChange={(e) => setReferenceUrl(e.target.value)}
+          />
+        </Field>
         <Field label={campaign?.backgroundImage ? "Replace background image" : "Background image"} hint="Optional. PNG, JPEG or WebP, up to 5 MB.">
           <input
             type="file"

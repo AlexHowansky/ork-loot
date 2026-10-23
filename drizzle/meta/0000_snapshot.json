@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "51fe6fb2-fc05-43de-9e7d-a083b13973f1",
+  "id": "7bec117e-5615-48cf-9487-6bfd8ae41672",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -57,6 +57,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": 2
+        },
+        "base_reference_url": {
+          "name": "base_reference_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "petty_cash": {
           "name": "petty_cash",

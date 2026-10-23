@@ -60,6 +60,8 @@ export const campaign = sqliteTable(
     backgroundImage: text("background_image"),
     currencyLabel: text("currency_label").notNull().default("gp"),
     currencyDecimals: integer("currency_decimals").notNull().default(2),
+    /** Where item links will point, e.g. a rules reference site. */
+    baseReferenceUrl: text("base_reference_url"),
     /** Split leftovers that don't divide evenly, in minor units. */
     pettyCash: integer("petty_cash").notNull().default(0),
     createdAt: createdAt(),
