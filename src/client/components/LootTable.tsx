@@ -23,7 +23,7 @@ const FILTER: Record<StatusFilter, (s: LootStatus) => boolean> = {
 };
 
 const FILTER_LABEL: Record<StatusFilter, string> = {
-  pool: "In pool",
+  pool: "Pool",
   available: "Available",
   history: "Gone",
   all: "All",

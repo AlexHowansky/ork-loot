@@ -107,7 +107,7 @@ they have claimed from the pool.
 
 * The loot table is sorted by item name, A to Z.
 
-* The loot table filters by session and by status: "In pool" (available, party
+* The loot table filters by session and by status: "Pool" (available, party
   and claimed), "Available" (not yet claimed), "Gone" (sold, bought and
   abandoned) and "All".
 
