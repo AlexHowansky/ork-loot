@@ -10,6 +10,7 @@ import {
 import type { CampaignView, LootView } from "../../shared/types.ts";
 import { Field, FormError, withError } from "./Field.tsx";
 import { Modal } from "./Modal.tsx";
+import { ReferenceLink } from "./ReferenceLink.tsx";
 import { CancelButton, SubmitButton } from "./SubmitButton.tsx";
 import { useSubmit } from "./useSubmit.ts";
 
@@ -130,15 +131,17 @@ export function LootForm({
             onChange={(e) => setDescription(e.target.value)}
           />
         </Field>
-        <Field label="Link" error={s.fields.link}>
-          <input
-            type="url"
-            className={withError("input w-full", s.fields.link)}
-            placeholder="Optional, e.g. https://…"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-          />
-        </Field>
+        <ReferenceLink
+          campaign={campaign}
+          name={name}
+          link={link}
+          error={s.fields.link}
+          onChange={setLink}
+          onPick={(m) => {
+            setLink(m.url);
+            if (m.value !== null) setValue(toInput(m.value, decimals));
+          }}
+        />
         <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-3">
           <Field label="Quantity" error={s.fields.quantity}>
             <input

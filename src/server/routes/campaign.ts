@@ -4,6 +4,8 @@ import { requireGm } from "../lib/auth.ts";
 import { badRequest } from "../lib/errors.ts";
 import { readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
+import { RateLimiter } from "../lib/rate-limit.ts";
+import { searchReference } from "../lib/reference-search.ts";
 import { removeImage, saveImage } from "../lib/upload.ts";
 import {
   campaignInfo,
@@ -15,6 +17,8 @@ import { previewSplit, runSplit } from "../domain/loot.ts";
 import { campaignSchema } from "../../shared/schemas.ts";
 
 export function campaignRoutes(r: Router) {
+  const referenceLimiter = new RateLimiter(60, 60_000);
+
   r.get("/api/campaigns", (ctx) => listCampaigns(ctx.db, requireGm(ctx).id));
 
   r.post("/api/campaigns", async (ctx) => {
@@ -65,6 +69,15 @@ export function campaignRoutes(r: Router) {
       .returning()
       .get();
     return campaignInfo(row!);
+  });
+
+  r.get("/api/campaigns/:id/reference", async (ctx) => {
+    const gm = requireGm(ctx);
+    const c = ownedCampaign(ctx.db, gm.id, uuidParam(ctx));
+    const q = (ctx.url.searchParams.get("q") ?? "").trim();
+    if (q.length < 2 || q.length > 100) return [];
+    referenceLimiter.hit(gm.id);
+    return searchReference(ctx.config.fetch ?? fetch, c, q, ctx.requestId);
   });
 
   r.delete("/api/campaigns/:id", async (ctx) => {

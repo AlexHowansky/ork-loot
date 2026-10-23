@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { addGm, Client, makeApp } from "./helpers.ts";
+import { addGm, Client, makeApp, referenceCalls, setReferenceReply } from "./helpers.ts";
 import { campaign } from "../src/server/db/schema.ts";
 import type { CampaignView, PlayView } from "../src/shared/types.ts";
 
@@ -469,5 +469,86 @@ describe("uploads", () => {
 
   test("refuses path tricks", async () => {
     expect((await gmA.raw("GET", "/uploads/..%2Fapp.db")).status).toBe(404);
+  });
+});
+
+describe("reference search", () => {
+  const hit = (source: Record<string, unknown>) => ({ _source: source });
+
+  test("only searches known reference sites", async () => {
+    const { campaignId } = await seed();
+    expect((await gmA.get(`/api/campaigns/${campaignId}/reference?q=potion`)).body).toEqual([]);
+    await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, baseReferenceUrl: "https://example.com/" });
+    expect((await gmA.get(`/api/campaigns/${campaignId}/reference?q=potion`)).body).toEqual([]);
+    expect(referenceCalls).toEqual([]);
+  });
+
+  test("returns matches with links and prices in the campaign's currency", async () => {
+    const { campaignId } = await seed();
+    await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, baseReferenceUrl: "https://2e.aonprd.com/" });
+    setReferenceReply(() =>
+      Response.json({
+        hits: {
+          hits: [
+            hit({ name: "Healing Potion (Minor)", url: "/Equipment.aspx?ID=2943", level: 1, price: 400, price_raw: "4 gp" }),
+            hit({ name: "Healing Potion", url: "/Equipment.aspx?ID=2943", level: 1 }),
+            hit({ name: "Elsewhere", url: "https://evil.example/x", price: 1 }),
+            { nonsense: true },
+          ],
+        },
+      }),
+    );
+    const res = await gmA.get(`/api/campaigns/${campaignId}/reference?q=healing%20potion`);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      {
+        name: "Healing Potion (Minor)",
+        url: "https://2e.aonprd.com/Equipment.aspx?ID=2943",
+        level: 1,
+        priceLabel: "4 gp",
+        value: 400,
+      },
+      {
+        name: "Healing Potion",
+        url: "https://2e.aonprd.com/Equipment.aspx?ID=2943",
+        level: 1,
+        priceLabel: null,
+        value: null,
+      },
+    ]);
+    expect(referenceCalls).toHaveLength(1);
+    expect(referenceCalls[0]!.url).toBe("https://elasticsearch.aonprd.com/aon/_search");
+    expect(referenceCalls[0]!.body.size).toBe(10);
+  });
+
+  test("leaves the value out when the currency doesn't match", async () => {
+    const { campaignId } = await seed();
+    await gmA.patch(`/api/campaigns/${campaignId}`, {
+      ...campaignBody,
+      currencyLabel: "cr",
+      baseReferenceUrl: "https://2e.aonprd.com/",
+    });
+    setReferenceReply(() => Response.json({ hits: { hits: [hit({ name: "Rope", url: "/x", price: 5 })] } }));
+    const res = await gmA.get(`/api/campaigns/${campaignId}/reference?q=rope`);
+    expect(res.body[0].value).toBeNull();
+  });
+
+  test("ignores short queries and reports an unreachable site kindly", async () => {
+    const { campaignId } = await seed();
+    await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, baseReferenceUrl: "https://2e.aonsrd.com/" });
+    expect((await gmA.get(`/api/campaigns/${campaignId}/reference?q=a`)).body).toEqual([]);
+    expect(referenceCalls).toEqual([]);
+    setReferenceReply(() => new Response("down", { status: 503 }));
+    const res = await gmA.get(`/api/campaigns/${campaignId}/reference?q=laser`);
+    expect(res.status).toBe(502);
+    expect(res.body.error).toBe("The reference site couldn't be searched just now.");
+    expect(referenceCalls[0]!.url).toBe("https://elasticsearch.aonprd.com/aonsf/_search");
+  });
+
+  test("is only available to the campaign's GM", async () => {
+    const { campaignId } = await seed();
+    const gmB = new Client(ctx.app, "10.0.0.2");
+    await gmB.login("bob");
+    expect((await gmB.get(`/api/campaigns/${campaignId}/reference?q=rope`)).status).toBe(404);
   });
 });

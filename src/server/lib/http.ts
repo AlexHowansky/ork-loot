@@ -7,6 +7,8 @@ export interface AppConfig {
   uploadDir: string;
   /** Mark cookies Secure (production behind HTTPS). */
   secureCookies: boolean;
+  /** Used to reach reference sites; tests pass a stub. */
+  fetch?: typeof fetch;
 }
 
 export interface Ctx {

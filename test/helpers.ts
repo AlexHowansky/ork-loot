@@ -8,10 +8,24 @@ import { hashPassword } from "../src/server/lib/auth.ts";
 
 export const ORIGIN = "http://loot.test";
 
+/** Reference-site requests made by the app, answered by `referenceReply`. */
+export const referenceCalls: { url: string; body: any }[] = [];
+export let referenceReply: () => Response = () => Response.json({ hits: { hits: [] } });
+export function setReferenceReply(reply: () => Response) {
+  referenceReply = reply;
+}
+
+const stubFetch = (async (url: string | URL | Request, init?: RequestInit) => {
+  referenceCalls.push({ url: String(url), body: JSON.parse(String(init?.body ?? "null")) });
+  return referenceReply();
+}) as typeof fetch;
+
 export function makeApp() {
   const db = openDb(":memory:");
   const uploadDir = mkdtempSync(join(tmpdir(), "phat-loot-"));
-  const app = createApp({ db, uploadDir, secureCookies: false });
+  referenceCalls.length = 0;
+  setReferenceReply(() => Response.json({ hits: { hits: [] } }));
+  const app = createApp({ db, uploadDir, secureCookies: false, fetch: stubFetch });
   return { db, uploadDir, app };
 }
 

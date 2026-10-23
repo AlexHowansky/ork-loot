@@ -68,7 +68,7 @@ they have claimed from the pool.
   systems that use different decimal places can't be picked.
 
 * Each campaign may set a base reference URL (an http or https address, e.g.
-  a rules reference site). It will be used to build links to item details.
+  a rules reference site). The loot form searches it for items (see below).
 
 * A campaign's background image is uploaded to local disk (PNG, JPEG or WebP,
   up to 5 MB, checked by content rather than by the type the browser claims).
@@ -102,6 +102,15 @@ they have claimed from the pool.
   (optional), link (optional, http or https only), quantity (required,
   default 1), value (optional), market percentage (default 50% because we
   only get half value when we sell) and status.
+
+* When the campaign's base reference URL is a site the app knows how to
+  search (for now the Archives of Nethys at https://2e.aonprd.com/ and
+  https://2e.aonsrd.com/), the loot form's link field suggests up to 10
+  items from that site matching the item's name. Choosing one fills in the
+  link, and the value too when the site gives a price that converts exactly
+  into the campaign's currency (gp for Pathfinder, cr for Starfinder). The
+  server makes the search itself and contacts only those known sites; other
+  base reference URLs get no suggestions.
 
 * When a loot item has a link, its name in the loot table links to it, in a
   new tab, for the GM and players alike.

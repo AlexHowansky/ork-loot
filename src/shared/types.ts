@@ -28,6 +28,17 @@ export interface CampaignInfo {
   pettyCash: number;
 }
 
+/** An item found on the campaign's reference site. */
+export interface ReferenceMatch {
+  name: string;
+  url: string;
+  level: number | null;
+  /** The price as the site writes it, e.g. "4 gp". */
+  priceLabel: string | null;
+  /** The price in the campaign's minor units, when it converts exactly. */
+  value: number | null;
+}
+
 export interface CampaignSummary extends CampaignInfo {
   characterCount: number;
   sessionCount: number;
