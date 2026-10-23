@@ -71,7 +71,7 @@ export interface LootView {
 }
 
 export interface PoolView {
-  /** Active + claimed: what a split would sell. */
+  /** Available + claimed: what a split would sell. */
   sellable: number;
   party: number;
   claimed: number;

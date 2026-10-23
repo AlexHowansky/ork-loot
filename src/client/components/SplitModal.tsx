@@ -56,14 +56,14 @@ export function SplitModal({
           <>
             <p className="mb-2">
               Selling the pool brings in{" "}
-              <Money amount={preview.data.total} campaign={campaign} className="font-semibold" />. Active
+              <Money amount={preview.data.total} campaign={campaign} className="font-semibold" />. Available
               items become <em>sold</em>, claimed items become <em>bought</em>, and the party fund is kept.
             </p>
             {empty ? (
               <p className="text-base-content/70">
                 {preview.data.shares.length === 0
                   ? "Add characters before running a split."
-                  : "There's no active or claimed loot to split."}
+                  : "There's no available or claimed loot to split."}
               </p>
             ) : (
               <>

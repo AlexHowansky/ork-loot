@@ -36,7 +36,7 @@ export function LootForm({
   const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
   const [value, setValue] = useState(toInput(item?.value ?? null, decimals));
   const [marketPct, setMarketPct] = useState(String(item?.marketPct ?? 50));
-  const [status, setStatus] = useState<LootStatus>(item?.status ?? "active");
+  const [status, setStatus] = useState<LootStatus>(item?.status ?? "available");
   const [characterId, setCharacterId] = useState<string | null>(item?.characterId ?? null);
   const [added, setAdded] = useState(0);
   const s = useSubmit();

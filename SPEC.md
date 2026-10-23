@@ -99,13 +99,13 @@ they have claimed from the pool.
 * The loot table shows each item's status as a pill on its own, and the
   character who claimed or bought it in a separate "Claimed by" column.
 
-* The loot table filters by session and by status: "In pool" (active, party
-  and claimed), "Available" (active, so not yet claimed), "Gone" (sold,
-  bought and left) and "All".
+* The loot table filters by session and by status: "In pool" (available, party
+  and claimed), "Available" (not yet claimed), "Gone" (sold, bought and left)
+  and "All".
 
 * Statuses are as follows:
-    * active: In the loot pool and available to be claimed. Will be sold
-              during a loot split. The default for new items.
+    * available: In the loot pool and free to be claimed. Will be sold
+                 during a loot split. The default for new items.
     * party: In the loot pool and reserved as party fund. Will not be sold
              during a loot split.
     * sold: Sold, no longer in the loot pool. Kept for historical purposes.
@@ -120,16 +120,16 @@ they have claimed from the pool.
 * For each campaign, keep a running total of the value of the loot pool. Keep
   track of each character's share of the value.
 
-* Allow players to claim pieces of active loot for their character. Claimed
+* Allow players to claim pieces of available loot for their character. Claimed
   pieces reduce the character's share accordingly. Once a piece has been
   claimed, it can not be claimed by another character. If a line has more than
   one quantity, ask the player how many they want to claim, and then split as
   appropriate.
 
 * Players can release their own claims back to the pool. A released part of
-  a stack merges back into the matching active row from the same session.
+  a stack merges back into the matching available row from the same session.
 
-* The GM can claim active loot on a character's behalf from the loot table,
+* The GM can claim available loot on a character's behalf from the loot table,
   choosing the character and, for a stack, how many, and can release any
   character's claim. These work just as a player's own claims and releases.
 
@@ -140,14 +140,14 @@ they have claimed from the pool.
 
 * The GM can, at any time, perform a loot split. This represents selling off
   loot acquired since the last loot split. When a loot split happens:
-    * Add the value of all active items plus all claimed items.
+    * Add the value of all available items plus all claimed items.
     * Allocate this total across all characters, accounting for the number of
       shares each has.
     * Subtract the value of each player's claimed items from their share.
     * Report each player's split value. This is how much they earn from the
       sale. It can be negative when their claims are worth more than their
       share.
-    * Update each claimed item to bought. Update each active item to sold.
+    * Update each claimed item to bought. Update each available item to sold.
 
 * Claimed items are valued at their market-adjusted subtotal, the same figure
   that goes into the total. Every share is worth exactly the same: the total

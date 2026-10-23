@@ -1,7 +1,7 @@
 import { STATUS_LABEL, type LootStatus } from "../../shared/status.ts";
 
 const COLOR: Record<LootStatus, string> = {
-  active: "badge-success",
+  available: "badge-success",
   party: "badge-info",
   claimed: "badge-warning",
   bought: "badge-neutral",

@@ -108,7 +108,7 @@ export const lootSchema = lootFields.extend({
   quantity: lootFields.shape.quantity.default(1),
   value: lootFields.shape.value.default(null),
   marketPct: lootFields.shape.marketPct.default(50),
-  status: lootFields.shape.status.default("active"),
+  status: lootFields.shape.status.default("available"),
   characterId: lootFields.shape.characterId.default(null),
 });
 

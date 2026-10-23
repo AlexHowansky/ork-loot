@@ -84,7 +84,7 @@ export function computePool(
   const claimedBy = new Map<string, number>();
   for (const r of rows) {
     const sub = subtotal(r.quantity, r.value, r.marketPct);
-    if (r.status === "active") sellable += sub;
+    if (r.status === "available") sellable += sub;
     else if (r.status === "party") party += sub;
     else if (r.status === "claimed") {
       sellable += sub;

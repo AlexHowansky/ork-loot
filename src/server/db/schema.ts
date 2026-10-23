@@ -152,7 +152,7 @@ export const loot = sqliteTable(
     marketPct: integer("market_pct").notNull().default(50),
     status: text("status", { enum: LOOT_STATUSES })
       .notNull()
-      .default("active"),
+      .default("available"),
     characterId: text("character_id").references(() => character.id, {
       onDelete: "set null",
     }),

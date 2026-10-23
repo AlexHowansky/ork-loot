@@ -57,7 +57,7 @@ export function CampaignBoard({
       </section>
 
       <div className="stats mb-3 w-full grid-flow-row grid-cols-2 bg-base-100 shadow md:grid-cols-3 lg:grid-flow-col lg:grid-cols-none">
-        <Stat title="Pool to split" value={<Money amount={pool.sellable} campaign={campaign} />} desc="Active and claimed, at market" />
+        <Stat title="Pool to split" value={<Money amount={pool.sellable} campaign={campaign} />} desc="Available and claimed, at market" />
         <Stat
           title="Per share"
           value={<Money amount={perShare} campaign={campaign} />}

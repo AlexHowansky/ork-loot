@@ -10,7 +10,7 @@ shares, taking each character's claims out of what they're owed.
 * GM accounts, with campaigns, sessions, characters and loot.
 * Players join with a one-time code that ties them to one character. No
   account or password is needed, and one browser can hold several characters.
-* Players claim active loot, including part of a stack, and can release their
+* Players claim available loot, including part of a stack, and can release their
   claims. The GM can claim or release on a character's behalf.
 * Split preview and history. Each character's share, claims and payout are
   shown, and any remainder that doesn't divide evenly goes to petty cash.

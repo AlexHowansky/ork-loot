@@ -110,7 +110,7 @@ export function characterRoutes(r: Router) {
       }
       // Anything they had claimed goes back into the pool.
       tx.update(loot)
-        .set({ status: "active", characterId: null })
+        .set({ status: "available", characterId: null })
         .where(eq(loot.characterId, ch.id))
         .run();
       tx.delete(character).where(eq(character.id, ch.id)).run();

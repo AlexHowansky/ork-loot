@@ -216,7 +216,7 @@ describe("claims", () => {
     const res = await amiri.client.post(`/api/play/${amiri.id}/claim`, { lootId: potion.id, quantity: 2 });
     expect(res.status).toBe(200);
     const loot = (await view()).loot;
-    expect(loot.find((l) => l.status === "active")!.quantity).toBe(3);
+    expect(loot.find((l) => l.status === "available")!.quantity).toBe(3);
     const claimed = loot.find((l) => l.status === "claimed")!;
     expect(claimed.quantity).toBe(2);
     expect(claimed.characterId).toBe(amiri.id);
@@ -238,13 +238,13 @@ describe("claims", () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ status: "claimed", quantity: 2, characterId: amiri.id });
     let loot = (await view()).loot;
-    expect(loot.find((l) => l.status === "active")!.quantity).toBe(3);
+    expect(loot.find((l) => l.status === "available")!.quantity).toBe(3);
 
     expect((await gmA.post(`/api/loot/${potion.id}/release`)).status).toBe(400);
     expect((await gmA.post(`/api/loot/${res.body.id}/release`)).status).toBe(200);
     loot = (await view()).loot;
     expect(loot).toHaveLength(1);
-    expect(loot[0]).toMatchObject({ status: "active", quantity: 5, characterId: null });
+    expect(loot[0]).toMatchObject({ status: "available", quantity: 5, characterId: null });
   });
 
   test("the GM can only claim for characters in the same campaign", async () => {
@@ -322,7 +322,7 @@ describe("claims", () => {
     const loot = (await view()).loot;
     expect(loot).toHaveLength(1);
     expect(loot[0]!.quantity).toBe(5);
-    expect(loot[0]!.status).toBe("active");
+    expect(loot[0]!.status).toBe("available");
   });
 });
 

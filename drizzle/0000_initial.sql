@@ -53,7 +53,7 @@ CREATE TABLE `loot` (
 	`quantity` integer DEFAULT 1 NOT NULL,
 	`value` integer,
 	`market_pct` integer DEFAULT 50 NOT NULL,
-	`status` text DEFAULT 'active' NOT NULL,
+	`status` text DEFAULT 'available' NOT NULL,
 	`character_id` text,
 	`split_id` integer,
 	`created_at` integer NOT NULL,

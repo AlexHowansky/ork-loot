@@ -33,8 +33,8 @@ const alreadyGone = () =>
   );
 
 /**
- * Claims `quantity` of an active loot row for a character. Claiming part
- * of a stack leaves the rest active on the original row and puts the
+ * Claims `quantity` of an available loot row for a character. Claiming part
+ * of a stack leaves the rest available on the original row and puts the
  * claimed part on a new row. The status and quantity guards in each
  * UPDATE stop two players from claiming the same units.
  */
@@ -46,7 +46,7 @@ export function claimLoot(
 ): Loot {
   return db.transaction((tx) => {
     const item = lootInCampaign(tx, lootId, who.campaignId);
-    if (item.status !== "active") throw alreadyGone();
+    if (item.status !== "available") throw alreadyGone();
     if (quantity > item.quantity) {
       throw badRequest(
         `There ${item.quantity === 1 ? "is" : "are"} only ${item.quantity} to claim.`,
@@ -60,7 +60,7 @@ export function claimLoot(
         .where(
           and(
             eq(loot.id, item.id),
-            eq(loot.status, "active"),
+            eq(loot.status, "available"),
             eq(loot.quantity, quantity),
           ),
         )
@@ -75,7 +75,7 @@ export function claimLoot(
       .where(
         and(
           eq(loot.id, item.id),
-          eq(loot.status, "active"),
+          eq(loot.status, "available"),
           gte(loot.quantity, quantity + 1),
         ),
       )
@@ -105,7 +105,7 @@ const sameOrNull = <T>(col: Parameters<typeof eq>[0], v: T | null): SQL =>
 
 /**
  * Releases a character's claim back to the pool, merging it into an
- * identical active row from the same session when there is one.
+ * identical available row from the same session when there is one.
  */
 export function releaseLoot(db: Db, who: Character, lootId: number): void {
   db.transaction((tx) => {
@@ -120,7 +120,7 @@ export function releaseLoot(db: Db, who: Character, lootId: number): void {
         and(
           ne(loot.id, item.id),
           eq(loot.sessionId, item.sessionId),
-          eq(loot.status, "active"),
+          eq(loot.status, "available"),
           eq(loot.name, item.name),
           eq(loot.marketPct, item.marketPct),
           sameOrNull(loot.description, item.description),
@@ -137,7 +137,7 @@ export function releaseLoot(db: Db, who: Character, lootId: number): void {
       tx.delete(loot).where(eq(loot.id, item.id)).run();
     } else {
       tx.update(loot)
-        .set({ status: "active", characterId: null })
+        .set({ status: "available", characterId: null })
         .where(eq(loot.id, item.id))
         .run();
     }
@@ -179,7 +179,7 @@ export function previewSplit(db: Db, c: Campaign): SplitView {
 
 /**
  * Sells the pool: records each character's payout, adds the leftover to
- * petty cash, marks claimed items bought and active items sold. Party and
+ * petty cash, marks claimed items bought and available items sold. Party and
  * left-behind items are untouched.
  */
 export function runSplit(db: Db, c: Campaign): SplitView {
@@ -188,9 +188,9 @@ export function runSplit(db: Db, c: Campaign): SplitView {
     if (chars.length === 0) {
       throw badRequest("Add at least one character before running a split.");
     }
-    const sold = rows.filter((r) => r.status === "active" || r.status === "claimed");
+    const sold = rows.filter((r) => r.status === "available" || r.status === "claimed");
     if (sold.length === 0) {
-      throw badRequest("There's no active or claimed loot to split.");
+      throw badRequest("There's no available or claimed loot to split.");
     }
     const created = tx
       .insert(split)
@@ -219,17 +219,17 @@ export function runSplit(db: Db, c: Campaign): SplitView {
     const ids = (status: Loot["status"]) =>
       sold.filter((r) => r.status === status).map((r) => r.id);
     const claimedIds = ids("claimed");
-    const activeIds = ids("active");
+    const availableIds = ids("available");
     if (claimedIds.length) {
       tx.update(loot)
         .set({ status: "bought", splitId: created.id })
         .where(and(inArray(loot.id, claimedIds), eq(loot.status, "claimed")))
         .run();
     }
-    if (activeIds.length) {
+    if (availableIds.length) {
       tx.update(loot)
         .set({ status: "sold", splitId: created.id })
-        .where(and(inArray(loot.id, activeIds), eq(loot.status, "active")))
+        .where(and(inArray(loot.id, availableIds), eq(loot.status, "available")))
         .run();
     }
     return created.id;

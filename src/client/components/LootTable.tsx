@@ -16,9 +16,9 @@ import type { Mode } from "./Board.tsx";
 export type StatusFilter = "pool" | "available" | "history" | "all";
 
 const FILTER: Record<StatusFilter, (s: LootStatus) => boolean> = {
-  pool: (s) => s === "active" || s === "party" || s === "claimed",
-  // Active items are in the pool and nobody has claimed them yet.
-  available: (s) => s === "active",
+  pool: (s) => s === "available" || s === "party" || s === "claimed",
+  // Available items are in the pool and nobody has claimed them yet.
+  available: (s) => s === "available",
   history: (s) => s === "sold" || s === "bought" || s === "left",
   all: () => true,
 };
@@ -250,7 +250,7 @@ export function LootTable({
                     <td className="text-right whitespace-nowrap">
                       {gm ? (
                         <>
-                          {item.status === "active" && view.characters.length > 0 && claimButton(item)}
+                          {item.status === "available" && view.characters.length > 0 && claimButton(item)}
                           {item.status === "claimed" && releaseButton(item)}
                           <button
                             type="button"
@@ -270,7 +270,7 @@ export function LootTable({
                             <Icon icon={faTrash} />
                           </button>
                         </>
-                      ) : item.status === "active" ? (
+                      ) : item.status === "available" ? (
                         claimButton(item)
                       ) : mine && item.status === "claimed" ? (
                         releaseButton(item)

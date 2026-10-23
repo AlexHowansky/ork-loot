@@ -90,7 +90,7 @@ export function lootRoutes(r: Router) {
     return lootView(row!);
   });
 
-  /** The GM claims part or all of an active row for a character. */
+  /** The GM claims part or all of an available row for a character. */
   r.post("/api/loot/:id/claim", async (ctx) => {
     const { loot: item, campaignId } = ownedLoot(ctx.db, requireGm(ctx).id, idParam(ctx));
     const { characterId, quantity } = await readJson(ctx, gmClaimSchema);
