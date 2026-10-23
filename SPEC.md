@@ -98,8 +98,10 @@ they have claimed from the pool.
 
 * The loot table shows each item's status as a pill on its own, and the
   character who claimed or bought it in a separate "Claim" column.
-  Hovering over a status pill shows what that status means, as described
-  below.
+  Each pill has an icon: a tag for available, a group of people for party, a
+  hand for claimed, a person for bought, a sack of money for sold and a trash
+  can for abandoned. Hovering over a status pill shows what that status
+  means, as described below.
 
 * When the loot table shows all sessions, a "Session" column after "Claim"
   shows the session's date. Hovering over the date shows that session's title

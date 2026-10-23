@@ -28,4 +28,7 @@ export {
   faSackDollar,
   faChevronDown,
   faCircleCheck,
+  faPeopleGroup,
+  faTag,
+  faTrashCan,
 } from "@fortawesome/free-solid-svg-icons";
