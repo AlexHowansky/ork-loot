@@ -14,6 +14,7 @@ const rules: [string, RegExp][] = [
   ["hand-written dark-mode variant", /\bdark:[a-z[!-]/],
   ["browser dialog", /\b(?:window\.)?(?:confirm|alert|prompt)\s*\(/],
   ["hex colour", /#[0-9a-fA-F]{3,8}\b(?![\w-])/],
+  ["scrolling panel", /\boverflow-(?:[xy]-)?(?:auto|scroll)\b/],
 ];
 
 describe("UI rules", () => {

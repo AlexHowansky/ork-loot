@@ -37,8 +37,10 @@ The product specification (terms and features) is in @SPEC.md.
   page need not take the full width of the window: a panel whose content fits
   comfortably in less room may be narrower, sized by judgement to what it holds.
   But a panel that isn't full width never shows a scrollbar because of the
-  amount of content in it; it is made wider first. Modals are never full width:
-  they are only as wide as their content needs.
+  amount of content in it; it is made wider first. No panel or table scrolls
+  on its own: when content still doesn't fit, the panel grows and the window
+  scrolls instead. Modals are never full width: they are only as wide as their
+  content needs.
 
 * Use Font Awesome v7 Free for icons.
 

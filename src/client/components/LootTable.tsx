@@ -180,7 +180,7 @@ export function LootTable({
           {view.loot.length === 0 ? "No loot recorded yet." : "No items match these filters."}
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div>
           <table className="table table-sm">
             <thead>
               <tr>

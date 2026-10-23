@@ -62,7 +62,7 @@ export function SessionTable({
           No sessions yet.{gm && " Create one to start adding loot."}
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div>
           <table className="table table-sm">
             <thead>
               <tr>

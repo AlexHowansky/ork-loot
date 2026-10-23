@@ -37,7 +37,7 @@ export function CampaignBoard({
   ];
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl min-w-fit">
       <section className="relative mb-3 rounded-box bg-neutral text-neutral-content shadow">
         {campaign.backgroundImage && (
           <div className="absolute inset-0 overflow-hidden rounded-box">

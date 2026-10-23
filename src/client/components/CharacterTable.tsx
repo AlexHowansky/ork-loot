@@ -77,7 +77,7 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
           No characters yet.{gm && " Add one for each player; each gets a join code."}
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <div>
           <table className="table table-sm">
             <thead>
               <tr>

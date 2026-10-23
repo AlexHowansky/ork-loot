@@ -3,7 +3,7 @@ import { Money } from "./Money.tsx";
 
 export function SplitTable({ split, campaign }: { split: SplitView; campaign: CampaignInfo }) {
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="table table-sm">
         <thead>
           <tr>
