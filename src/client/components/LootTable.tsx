@@ -13,12 +13,21 @@ import { useToast } from "./Toast.tsx";
 import { Icon, faArrowRotateLeft, faArrowUpRightFromSquare, faHand, faPen, faPlus, faTrash } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
-export type StatusFilter = "pool" | "history" | "all";
+export type StatusFilter = "pool" | "available" | "history" | "all";
 
 const FILTER: Record<StatusFilter, (s: LootStatus) => boolean> = {
   pool: (s) => s === "active" || s === "party" || s === "claimed",
+  // Active items are in the pool and nobody has claimed them yet.
+  available: (s) => s === "active",
   history: (s) => s === "sold" || s === "bought" || s === "left",
   all: () => true,
+};
+
+const FILTER_LABEL: Record<StatusFilter, string> = {
+  pool: "In pool",
+  available: "Available",
+  history: "Gone",
+  all: "All",
 };
 
 export function LootTable({
@@ -119,7 +128,7 @@ export function LootTable({
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <div role="tablist" className="tabs tabs-box tabs-sm">
-          {(["pool", "history", "all"] as const).map((f) => (
+          {(["pool", "available", "history", "all"] as const).map((f) => (
             <button
               key={f}
               type="button"
@@ -128,7 +137,7 @@ export function LootTable({
               className={`tab ${statusFilter === f ? "tab-active" : ""}`}
               onClick={() => onStatusFilter(f)}
             >
-              {f === "pool" ? "In pool" : f === "history" ? "Gone" : "All"}
+              {FILTER_LABEL[f]}
             </button>
           ))}
         </div>

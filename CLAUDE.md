@@ -161,6 +161,10 @@ they have claimed from the pool.
 * The loot table shows each item's status as a pill on its own, and the
   character who claimed or bought it in a separate "Claimed by" column.
 
+* The loot table filters by session and by status: "In pool" (active, party
+  and claimed), "Available" (active, so not yet claimed), "Gone" (sold,
+  bought and left) and "All".
+
 * Statuses are as follows:
     * active: In the loot pool and available to be claimed. Will be sold
               during a loot split. The default for new items.
