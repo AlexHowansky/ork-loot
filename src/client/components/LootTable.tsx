@@ -227,7 +227,19 @@ export function LootTable({
                       )}
                     </td>
                     {sessionFilter === "all" && (
-                      <td className="hidden whitespace-nowrap text-base-content/70 md:table-cell">{session?.date}</td>
+                      <td className="hidden whitespace-nowrap text-base-content/70 md:table-cell">
+                        {session?.title || session?.notes ? (
+                          <span className="tooltip tooltip-right">
+                            <span className="tooltip-content text-left">
+                              {session.title && <span className="block font-semibold">{session.title}</span>}
+                              {session.notes && <span className="block whitespace-pre-line">{session.notes}</span>}
+                            </span>
+                            {session.date}
+                          </span>
+                        ) : (
+                          session?.date
+                        )}
+                      </td>
                     )}
                     <td className="text-right tabular-nums">{item.quantity}</td>
                     <td className="hidden text-right sm:table-cell">

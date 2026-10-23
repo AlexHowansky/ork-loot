@@ -101,6 +101,9 @@ they have claimed from the pool.
   Hovering over a status pill shows what that status means, as described
   below.
 
+* When the loot table shows all sessions, hovering over a session's date
+  shows that session's title and notes.
+
 * The loot table filters by session and by status: "In pool" (available, party
   and claimed), "Available" (not yet claimed), "Gone" (sold, bought and
   abandoned) and "All".
