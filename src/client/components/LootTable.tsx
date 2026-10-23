@@ -217,7 +217,7 @@ export function LootTable({
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-1 sm:hidden">
-                        <StatusBadge status={item.status} />
+                        <StatusBadge status={item.status} tip="right" />
                         {claimant && <span className="text-xs text-base-content/70">{claimant}</span>}
                       </div>
                       {item.description && (

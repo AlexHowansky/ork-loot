@@ -98,6 +98,8 @@ they have claimed from the pool.
 
 * The loot table shows each item's status as a pill on its own, and the
   character who claimed or bought it in a separate "Claimed by" column.
+  Hovering over a status pill shows what that status means, as described
+  below.
 
 * The loot table filters by session and by status: "In pool" (available, party
   and claimed), "Available" (not yet claimed), "Gone" (sold, bought and
