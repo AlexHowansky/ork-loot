@@ -187,6 +187,10 @@ they have claimed from the pool.
 * Players can release their own claims back to the pool. A released part of
   a stack merges back into the matching active row from the same session.
 
+* The GM can claim active loot on a character's behalf from the loot table,
+  choosing the character and, for a stack, how many, and can release any
+  character's claim. These work just as a player's own claims and releases.
+
 * Players can only set status to claimed. This also associates their character
   with the item.
 

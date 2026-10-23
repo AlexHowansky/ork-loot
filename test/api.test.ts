@@ -232,6 +232,41 @@ describe("claims", () => {
     expect((await view()).loot).toHaveLength(1);
   });
 
+  test("the GM can claim part of a stack for a character and release it", async () => {
+    const { potion, amiri, view } = await withPotions();
+    const res = await gmA.post(`/api/loot/${potion.id}/claim`, { characterId: amiri.id, quantity: 2 });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ status: "claimed", quantity: 2, characterId: amiri.id });
+    let loot = (await view()).loot;
+    expect(loot.find((l) => l.status === "active")!.quantity).toBe(3);
+
+    expect((await gmA.post(`/api/loot/${potion.id}/release`)).status).toBe(400);
+    expect((await gmA.post(`/api/loot/${res.body.id}/release`)).status).toBe(200);
+    loot = (await view()).loot;
+    expect(loot).toHaveLength(1);
+    expect(loot[0]).toMatchObject({ status: "active", quantity: 5, characterId: null });
+  });
+
+  test("the GM can only claim for characters in the same campaign", async () => {
+    const { potion } = await withPotions();
+    const other = await seed();
+    const res = await gmA.post(`/api/loot/${potion.id}/claim`, {
+      characterId: other.characterIds[0],
+      quantity: 1,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.fields.characterId).toBeDefined();
+    const gmB = new Client(ctx.app);
+    await gmB.login("bob");
+    expect((await gmB.post(`/api/loot/${potion.id}/claim`, { characterId: other.characterIds[0], quantity: 1 })).status).toBe(404);
+  });
+
+  test("players can't use the GM's claim routes", async () => {
+    const { potion, amiri } = await withPotions();
+    const res = await amiri.client.post(`/api/loot/${potion.id}/claim`, { characterId: amiri.id, quantity: 1 });
+    expect(res.status).toBe(401);
+  });
+
   test("an item claimed in full can't be claimed again", async () => {
     const { potion, amiri, ezren } = await withPotions();
     await amiri.client.post(`/api/play/${amiri.id}/claim`, { lootId: potion.id, quantity: 5 });

@@ -116,27 +116,38 @@ export function SessionForm({
 }
 
 /** Asks a player how many of a stack to claim. */
+/**
+ * Asks how many of a stack to claim. A player claims for their own
+ * character; the GM passes `characters` and picks who the claim is for.
+ */
 export function ClaimForm({
   item,
   campaign,
   characterId,
+  characters,
   onClose,
   onSaved,
 }: {
   item: LootView;
   campaign: CampaignInfo;
-  characterId: string;
   onClose: () => void;
-  onSaved: () => void;
-}) {
+  onSaved: (characterName?: string) => void;
+} & ({ characterId: string; characters?: never } | { characterId?: never; characters: CharacterView[] })) {
   const [quantity, setQuantity] = useState(String(item.quantity));
+  const [forId, setForId] = useState(characters?.[0]?.id ?? "");
   const s = useSubmit();
   const n = Number(quantity);
-  const valid = Number.isInteger(n) && n >= 1 && n <= item.quantity;
+  const qtyValid = Number.isInteger(n) && n >= 1 && n <= item.quantity;
+  const valid = qtyValid && (!characters || forId !== "");
+  const forName = characters?.find((c) => c.id === forId)?.name;
   const submit = () =>
     s.run(async () => {
-      await api.post(`/api/play/${characterId}/claim`, { lootId: item.id, quantity: n });
-      onSaved();
+      if (characters) {
+        await api.post(`/api/loot/${item.id}/claim`, { characterId: forId, quantity: n });
+      } else {
+        await api.post(`/api/play/${characterId}/claim`, { lootId: item.id, quantity: n });
+      }
+      onSaved(forName);
       onClose();
     });
   return (
@@ -149,31 +160,50 @@ export function ClaimForm({
           <CancelButton onClick={onClose} />
           <SubmitButton busy={s.busy} disabled={!valid}>
             Claim {valid ? n : ""}
+            {forName ? ` for ${forName}` : ""}
           </SubmitButton>
         </>
       }
     >
       <div className="w-72 max-w-full">
         <FormError message={s.hasFieldErrors ? null : s.message} />
-        <Field
-          label={`How many? (${item.quantity} available)`}
-          error={valid ? s.fields.quantity : `Choose 1 to ${item.quantity}.`}
-        >
-          <input
-            type="number"
-            min={1}
-            max={item.quantity}
-            step={1}
-            autoFocus
-            className={withError("input w-28", valid ? undefined : "x")}
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-          />
-        </Field>
+        {characters && (
+          <Field label="For which character?" error={s.fields.characterId}>
+            <select
+              className={withError("select w-full", s.fields.characterId)}
+              value={forId}
+              autoFocus
+              onChange={(e) => setForId(e.target.value)}
+            >
+              {characters.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        {item.quantity > 1 && (
+          <Field
+            label={`How many? (${item.quantity} available)`}
+            error={qtyValid ? s.fields.quantity : `Choose 1 to ${item.quantity}.`}
+          >
+            <input
+              type="number"
+              min={1}
+              max={item.quantity}
+              step={1}
+              autoFocus={!characters}
+              className={withError("input w-28", qtyValid ? undefined : "x")}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </Field>
+        )}
         {valid && (
           <p className="text-sm text-base-content/70">
             {formatMoney(subtotal(n, item.value, item.marketPct), campaign.currencyDecimals, campaign.currencyLabel)}{" "}
-            will come off your share.
+            will come off {forName ? `${forName}'s` : "your"} share.
           </p>
         )}
       </div>

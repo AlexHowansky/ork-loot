@@ -81,8 +81,7 @@ export function LootTable({
   }
 
   function claim(item: LootView) {
-    if (mode.kind !== "player") return;
-    if (item.quantity > 1) {
+    if (mode.kind !== "player" || item.quantity > 1) {
       setClaiming(item);
       return;
     }
@@ -94,13 +93,27 @@ export function LootTable({
   }
 
   function release(item: LootView) {
-    if (mode.kind !== "player") return;
     act(
       item,
-      () => api.post(`/api/play/${mode.characterId}/release`, { lootId: item.id }),
+      () =>
+        mode.kind === "gm"
+          ? api.post(`/api/loot/${item.id}/release`)
+          : api.post(`/api/play/${mode.characterId}/release`, { lootId: item.id }),
       `Released ${item.name} back to the pool.`,
     );
   }
+
+  const claimButton = (item: LootView) => (
+    <button type="button" className="btn btn-xs" disabled={busyId === item.id} onClick={() => claim(item)}>
+      <Icon icon={faHand} /> Claim
+    </button>
+  );
+
+  const releaseButton = (item: LootView) => (
+    <button type="button" className="btn btn-xs btn-ghost" disabled={busyId === item.id} onClick={() => release(item)}>
+      <Icon icon={faArrowRotateLeft} /> Release
+    </button>
+  );
 
   return (
     <div>
@@ -228,6 +241,8 @@ export function LootTable({
                     <td className="text-right whitespace-nowrap">
                       {gm ? (
                         <>
+                          {item.status === "active" && view.characters.length > 0 && claimButton(item)}
+                          {item.status === "claimed" && releaseButton(item)}
                           <button
                             type="button"
                             className="btn btn-ghost btn-xs btn-square"
@@ -247,23 +262,9 @@ export function LootTable({
                           </button>
                         </>
                       ) : item.status === "active" ? (
-                        <button
-                          type="button"
-                          className="btn btn-xs"
-                          disabled={busyId === item.id}
-                          onClick={() => claim(item)}
-                        >
-                          <Icon icon={faHand} /> Claim
-                        </button>
+                        claimButton(item)
                       ) : mine && item.status === "claimed" ? (
-                        <button
-                          type="button"
-                          className="btn btn-xs btn-ghost"
-                          disabled={busyId === item.id}
-                          onClick={() => release(item)}
-                        >
-                          <Icon icon={faArrowRotateLeft} /> Release
-                        </button>
+                        releaseButton(item)
                       ) : null}
                     </td>
                   </tr>
@@ -283,14 +284,14 @@ export function LootTable({
           onSaved={refresh}
         />
       )}
-      {claiming && mode.kind === "player" && (
+      {claiming && (
         <ClaimForm
           item={claiming}
           campaign={campaign}
-          characterId={mode.characterId}
+          {...(mode.kind === "player" ? { characterId: mode.characterId } : { characters: view.characters })}
           onClose={() => setClaiming(null)}
-          onSaved={() => {
-            toast(`Claimed ${claiming.name}.`);
+          onSaved={(forName) => {
+            toast(forName ? `Claimed ${claiming.name} for ${forName}.` : `Claimed ${claiming.name}.`);
             refresh();
           }}
         />

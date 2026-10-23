@@ -122,6 +122,11 @@ export const claimSchema = z.object({
 
 export const releaseSchema = z.object({ lootId: z.int() });
 
+/** The GM claiming loot on a character's behalf. */
+export const gmClaimSchema = claimSchema.omit({ lootId: true }).extend({
+  characterId: z.uuid({ error: "Choose a character." }),
+});
+
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type CharacterInput = z.infer<typeof characterSchema>;
 export type SessionInput = z.infer<typeof sessionSchema>;

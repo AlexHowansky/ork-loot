@@ -6,8 +6,9 @@ import { badRequest, notFound } from "../lib/errors.ts";
 import { idParam, readJson, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { lootView } from "../domain/campaign.ts";
+import { claimLoot, releaseLoot } from "../domain/loot.ts";
 import { ownedSession } from "./session.ts";
-import { lootSchema, lootUpdateSchema } from "../../shared/schemas.ts";
+import { gmClaimSchema, lootSchema, lootUpdateSchema } from "../../shared/schemas.ts";
 import { CHARACTER_STATUSES, type LootStatus } from "../../shared/status.ts";
 
 function ownedLoot(db: Db, gmId: string, lootId: number) {
@@ -20,6 +21,20 @@ function ownedLoot(db: Db, gmId: string, lootId: number) {
     .get();
   if (!row) throw notFound("That item");
   return row;
+}
+
+function campaignCharacter(db: Db, campaignId: string, characterId: string) {
+  const ch = db
+    .select()
+    .from(character)
+    .where(and(eq(character.id, characterId), eq(character.campaignId, campaignId)))
+    .get();
+  if (!ch) {
+    throw badRequest("That character isn't in this campaign.", {
+      characterId: "Choose a character from this campaign.",
+    });
+  }
+  return ch;
 }
 
 /**
@@ -38,17 +53,7 @@ function checkOwner(
       characterId: "Required for claimed or bought items.",
     });
   }
-  const ch = db
-    .select({ id: character.id })
-    .from(character)
-    .where(and(eq(character.id, characterId), eq(character.campaignId, campaignId)))
-    .get();
-  if (!ch) {
-    throw badRequest("That character isn't in this campaign.", {
-      characterId: "Choose a character from this campaign.",
-    });
-  }
-  return ch.id;
+  return campaignCharacter(db, campaignId, characterId).id;
 }
 
 export function lootRoutes(r: Router) {
@@ -83,6 +88,37 @@ export function lootRoutes(r: Router) {
       .get();
     logger.info("loot updated", { requestId: ctx.requestId, lootId: item.id, status });
     return lootView(row!);
+  });
+
+  /** The GM claims part or all of an active row for a character. */
+  r.post("/api/loot/:id/claim", async (ctx) => {
+    const { loot: item, campaignId } = ownedLoot(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const { characterId, quantity } = await readJson(ctx, gmClaimSchema);
+    const who = campaignCharacter(ctx.db, campaignId, characterId);
+    const row = claimLoot(ctx.db, who, item.id, quantity);
+    logger.info("loot claimed by gm", {
+      requestId: ctx.requestId,
+      characterId: who.id,
+      lootId: row.id,
+      quantity,
+    });
+    return lootView(row);
+  });
+
+  /** The GM releases a character's claim back to the pool. */
+  r.post("/api/loot/:id/release", (ctx) => {
+    const { loot: item, campaignId } = ownedLoot(ctx.db, requireGm(ctx).id, idParam(ctx));
+    if (item.status !== "claimed" || item.characterId === null) {
+      throw badRequest("Only claimed items can be released.");
+    }
+    const who = campaignCharacter(ctx.db, campaignId, item.characterId);
+    releaseLoot(ctx.db, who, item.id);
+    logger.info("claim released by gm", {
+      requestId: ctx.requestId,
+      characterId: who.id,
+      lootId: item.id,
+    });
+    return { ok: true };
   });
 
   r.delete("/api/loot/:id", (ctx) => {
