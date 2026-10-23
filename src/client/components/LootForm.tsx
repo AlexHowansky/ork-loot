@@ -37,7 +37,7 @@ export function LootForm({
   const [value, setValue] = useState(toInput(item?.value ?? null, decimals));
   const [marketPct, setMarketPct] = useState(String(item?.marketPct ?? 50));
   const [status, setStatus] = useState<LootStatus>(item?.status ?? "active");
-  const [characterId, setCharacterId] = useState<number | null>(item?.characterId ?? null);
+  const [characterId, setCharacterId] = useState<string | null>(item?.characterId ?? null);
   const [added, setAdded] = useState(0);
   const s = useSubmit();
 
@@ -190,7 +190,7 @@ export function LootForm({
               <select
                 className={withError("select w-full", s.fields.characterId)}
                 value={characterId ?? ""}
-                onChange={(e) => setCharacterId(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => setCharacterId(e.target.value || null)}
               >
                 <option value="">Choose…</option>
                 {view.characters.map((c) => (

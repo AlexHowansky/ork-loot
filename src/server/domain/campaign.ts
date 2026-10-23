@@ -52,7 +52,7 @@ export function lootView(row: Loot): LootView {
 }
 
 /** The campaign with this id if `gmId` owns it; otherwise a 404. */
-export function ownedCampaign(db: Db, gmId: number, campaignId: number) {
+export function ownedCampaign(db: Db, gmId: string, campaignId: string) {
   const row = db
     .select()
     .from(campaign)
@@ -62,7 +62,7 @@ export function ownedCampaign(db: Db, gmId: number, campaignId: number) {
   return row;
 }
 
-export function campaignLoot(db: Db, campaignId: number): Loot[] {
+export function campaignLoot(db: Db, campaignId: string): Loot[] {
   return db
     .select({ loot })
     .from(loot)
@@ -76,12 +76,12 @@ export function campaignLoot(db: Db, campaignId: number): Loot[] {
 /** Pool totals plus each character's projected split right now. */
 export function computePool(
   rows: Loot[],
-  characters: { id: number; shares: number }[],
+  characters: { id: string; shares: number }[],
 ) {
   let sellable = 0;
   let party = 0;
   let claimedTotal = 0;
-  const claimedBy = new Map<number, number>();
+  const claimedBy = new Map<string, number>();
   for (const r of rows) {
     const sub = subtotal(r.quantity, r.value, r.marketPct);
     if (r.status === "active") sellable += sub;
@@ -111,7 +111,7 @@ export function computePool(
   return { pool, allocations, leftover };
 }
 
-export function listCampaigns(db: Db, gmId: number): CampaignSummary[] {
+export function listCampaigns(db: Db, gmId: string): CampaignSummary[] {
   const rows = db
     .select()
     .from(campaign)
@@ -195,7 +195,7 @@ export function campaignView(
   };
 }
 
-export function splitHistory(db: Db, campaignId: number): SplitView[] {
+export function splitHistory(db: Db, campaignId: string): SplitView[] {
   const splits = db
     .select()
     .from(split)

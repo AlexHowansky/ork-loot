@@ -17,7 +17,7 @@ export function JoinPage() {
     setBusy(true);
     setError(null);
     try {
-      const { characterId } = await api.post<{ characterId: number }>("/api/join", { code });
+      const { characterId } = await api.post<{ characterId: string }>("/api/join", { code });
       await qc.invalidateQueries({ queryKey: keys.me });
       navigate(`/play/${characterId}`);
     } catch (err) {

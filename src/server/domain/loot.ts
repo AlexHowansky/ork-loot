@@ -16,7 +16,7 @@ import { campaignLoot, computePool, splitHistory } from "./campaign.ts";
 import type { SplitView } from "../../shared/types.ts";
 
 /** A loot row together with the campaign that owns it, or a 404. */
-export function lootInCampaign(db: Db, lootId: number, campaignId: number) {
+export function lootInCampaign(db: Db, lootId: number, campaignId: string) {
   const row = db
     .select({ loot })
     .from(loot)

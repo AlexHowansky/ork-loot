@@ -3,20 +3,20 @@ import type { LootStatus } from "./status.ts";
 /** Shapes returned by the JSON API. Money is in minor units. */
 
 export interface Me {
-  gm: { id: number; username: string } | null;
+  gm: { id: string; username: string } | null;
   characters: PlayerCharacter[];
 }
 
 export interface PlayerCharacter {
-  id: number;
+  id: string;
   name: string;
-  campaignId: number;
+  campaignId: string;
   campaignName: string;
   campaignImage: string | null;
 }
 
 export interface CampaignInfo {
-  id: number;
+  id: string;
   name: string;
   startDate: string;
   backgroundImage: string | null;
@@ -33,7 +33,7 @@ export interface CampaignSummary extends CampaignInfo {
 }
 
 export interface CharacterView {
-  id: number;
+  id: string;
   name: string;
   shares: number;
   /** Projected share of the sellable pool if a split ran now. */
@@ -65,7 +65,7 @@ export interface LootView {
   value: number | null;
   marketPct: number;
   status: LootStatus;
-  characterId: number | null;
+  characterId: string | null;
   splitId: number | null;
   subtotal: number;
 }
@@ -79,7 +79,7 @@ export interface PoolView {
 }
 
 export interface SplitShareView {
-  characterId: number | null;
+  characterId: string | null;
   characterName: string;
   shares: number;
   gross: number;
@@ -107,7 +107,7 @@ export interface CampaignView {
 }
 
 export interface PlayView extends CampaignView {
-  me: { id: number; name: string };
+  me: { id: string; name: string };
 }
 
 export interface ApiErrorBody {

@@ -25,13 +25,13 @@ const campaignBody = {
 /** A campaign with three characters (shares 1, 1, 2) and one session. */
 async function seed() {
   const c = (await gmA.post("/api/campaigns", campaignBody)).body;
-  const ids: number[] = [];
+  const ids: string[] = [];
   for (const [name, shares] of [["Amiri", 1], ["Ezren", 1], ["Valeros", 2]] as const) {
     ids.push((await gmA.post(`/api/campaigns/${c.id}/characters`, { name, shares })).body.id);
   }
   const s = (await gmA.post(`/api/campaigns/${c.id}/sessions`, { date: "2026-01-05" })).body;
   const view = async () => (await gmA.get<CampaignView>(`/api/campaigns/${c.id}`)).body;
-  return { campaignId: c.id as number, characterIds: ids, sessionId: s.id as number, view };
+  return { campaignId: c.id as string, characterIds: ids, sessionId: s.id as number, view };
 }
 
 async function join(code: string, ip?: string) {
@@ -93,6 +93,16 @@ describe("campaign access", () => {
     expect((await gmB.post(`/api/characters/${characterIds[0]}/code`)).status).toBe(404);
     expect((await gmB.post(`/api/sessions/${sessionId}/loot`, { name: "x" })).status).toBe(404);
     expect((await gmB.get("/api/campaigns")).body).toEqual([]);
+  });
+
+  test("campaign, GM and character ids are UUIDs, not counters", async () => {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+    const { campaignId, characterIds } = await seed();
+    expect(campaignId).toMatch(uuid);
+    for (const id of characterIds) expect(id).toMatch(uuid);
+    expect((await gmA.get("/api/auth/me")).body.gm.id).toMatch(uuid);
+    expect((await gmA.get("/api/campaigns/1")).status).toBe(404);
+    expect((await gmA.get(`/api/campaigns/${campaignId.toUpperCase()}`)).status).toBe(200);
   });
 
   test("validates input with field messages", async () => {
@@ -196,8 +206,8 @@ describe("claims", () => {
     return {
       ...s,
       potion,
-      amiri: { client: amiri.player, id: amiri.res.body.characterId as number },
-      ezren: { client: ezren.player, id: ezren.res.body.characterId as number },
+      amiri: { client: amiri.player, id: amiri.res.body.characterId as string },
+      ezren: { client: ezren.player, id: ezren.res.body.characterId as string },
     };
   }
 
@@ -377,7 +387,7 @@ describe("loot split", () => {
 describe("uploads", () => {
   const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
-  async function upload(campaignId: number, bytes: Uint8Array<ArrayBuffer>, type: string) {
+  async function upload(campaignId: string, bytes: Uint8Array<ArrayBuffer>, type: string) {
     const form = new FormData();
     form.append("image", new File([bytes], "bg", { type }));
     return gmA.raw("PUT", `/api/campaigns/${campaignId}/image`, { body: form });

@@ -46,7 +46,7 @@ export async function verifyCredentials(
   return (await Bun.password.verify(password, row.passwordHash)) ? row : null;
 }
 
-export function startLogin(ctx: Ctx, gmId: number) {
+export function startLogin(ctx: Ctx, gmId: string) {
   const token = newToken();
   ctx.db
     .insert(login)
@@ -141,7 +141,7 @@ export function ensurePlayer(ctx: Ctx) {
 }
 
 /** The character with this id, if this browser's player owns it. */
-export function requireOwnedCharacter(ctx: Ctx, characterId: number) {
+export function requireOwnedCharacter(ctx: Ctx, characterId: string) {
   const current = currentPlayer(ctx);
   if (!current) {
     throw new AppError(401, "Enter a join code to play a character.");

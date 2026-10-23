@@ -20,7 +20,7 @@ export function CampaignForm({
   /** Decimal places can't change once loot exists. */
   decimalsLocked?: boolean;
   onClose: () => void;
-  onSaved: (id: number) => void;
+  onSaved: (id: string) => void;
 }) {
   const [name, setName] = useState(campaign?.name ?? "");
   const [startDate, setStartDate] = useState(campaign?.startDate ?? today());

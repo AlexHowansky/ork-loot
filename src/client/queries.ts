@@ -5,8 +5,8 @@ import type { CampaignSummary, CampaignView, Me, PlayView } from "../shared/type
 export const keys = {
   me: ["me"] as const,
   campaigns: ["campaigns"] as const,
-  campaign: (id: number) => ["campaign", id] as const,
-  play: (id: number) => ["play", id] as const,
+  campaign: (id: string) => ["campaign", id] as const,
+  play: (id: string) => ["play", id] as const,
 };
 
 export const useMe = () => useQuery({ queryKey: keys.me, queryFn: () => api.get<Me>("/api/auth/me") });
@@ -14,10 +14,10 @@ export const useMe = () => useQuery({ queryKey: keys.me, queryFn: () => api.get<
 export const useCampaigns = () =>
   useQuery({ queryKey: keys.campaigns, queryFn: () => api.get<CampaignSummary[]>("/api/campaigns") });
 
-export const useCampaign = (id: number) =>
+export const useCampaign = (id: string) =>
   useQuery({ queryKey: keys.campaign(id), queryFn: () => api.get<CampaignView>(`/api/campaigns/${id}`) });
 
-export const usePlay = (id: number) =>
+export const usePlay = (id: string) =>
   useQuery({
     queryKey: keys.play(id),
     queryFn: () => api.get<PlayView>(`/api/play/${id}`),

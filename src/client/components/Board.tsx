@@ -7,7 +7,7 @@ import { SessionTable } from "./SessionTable.tsx";
 import { SplitHistory } from "./SplitHistory.tsx";
 import { Icon, faCalendarDays } from "./Icon.tsx";
 
-export type Mode = { kind: "gm" } | { kind: "player"; characterId: number };
+export type Mode = { kind: "gm" } | { kind: "player"; characterId: string };
 
 type Tab = "loot" | "characters" | "sessions" | "splits";
 

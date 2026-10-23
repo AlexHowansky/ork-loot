@@ -12,6 +12,12 @@ const createdAt = () =>
     .notNull()
     .$defaultFn(() => new Date());
 
+/** A random primary key, so ids that appear in URLs can't be guessed. */
+const uuid = () =>
+  text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID());
+
 const updatedAt = () =>
   integer("updated_at", { mode: "timestamp_ms" })
     .notNull()
@@ -19,7 +25,7 @@ const updatedAt = () =>
     .$onUpdateFn(() => new Date());
 
 export const gm = sqliteTable("gm", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: uuid(),
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: createdAt(),
@@ -28,7 +34,7 @@ export const gm = sqliteTable("gm", {
 /** A GM's login session. `id` is the SHA-256 of the cookie token. */
 export const login = sqliteTable("login", {
   id: text("id").primaryKey(),
-  gmId: integer("gm_id")
+  gmId: text("gm_id")
     .notNull()
     .references(() => gm.id, { onDelete: "cascade" }),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
@@ -45,8 +51,8 @@ export const player = sqliteTable("player", {
 export const campaign = sqliteTable(
   "campaign",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    gmId: integer("gm_id")
+    id: uuid(),
+    gmId: text("gm_id")
       .notNull()
       .references(() => gm.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
@@ -65,8 +71,8 @@ export const campaign = sqliteTable(
 export const character = sqliteTable(
   "character",
   {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    campaignId: integer("campaign_id")
+    id: uuid(),
+    campaignId: text("campaign_id")
       .notNull()
       .references(() => campaign.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
@@ -87,7 +93,7 @@ export const session = sqliteTable(
   "session",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    campaignId: integer("campaign_id")
+    campaignId: text("campaign_id")
       .notNull()
       .references(() => campaign.id, { onDelete: "cascade" }),
     date: text("date").notNull(),
@@ -102,7 +108,7 @@ export const split = sqliteTable(
   "split",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    campaignId: integer("campaign_id")
+    campaignId: text("campaign_id")
       .notNull()
       .references(() => campaign.id, { onDelete: "cascade" }),
     total: integer("total").notNull(),
@@ -119,7 +125,7 @@ export const splitShare = sqliteTable(
     splitId: integer("split_id")
       .notNull()
       .references(() => split.id, { onDelete: "cascade" }),
-    characterId: integer("character_id").references(() => character.id, {
+    characterId: text("character_id").references(() => character.id, {
       onDelete: "set null",
     }),
     characterName: text("character_name").notNull(),
@@ -147,7 +153,7 @@ export const loot = sqliteTable(
     status: text("status", { enum: LOOT_STATUSES })
       .notNull()
       .default("active"),
-    characterId: integer("character_id").references(() => character.id, {
+    characterId: text("character_id").references(() => character.id, {
       onDelete: "set null",
     }),
     splitId: integer("split_id").references(() => split.id, {

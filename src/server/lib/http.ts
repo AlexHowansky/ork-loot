@@ -122,6 +122,15 @@ export function idParam(ctx: Ctx, name = "id"): number {
   return id;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** A UUID route parameter, lower-cased; anything else is a 404. */
+export function uuidParam(ctx: Ctx, name = "id"): string {
+  const raw = ctx.params[name] ?? "";
+  if (!UUID.test(raw)) throw new AppError(404, "That page couldn't be found.");
+  return raw.toLowerCase();
+}
+
 /** Converts zod issues into a field → message map for forms. */
 export function zodFields(error: z.ZodError): Record<string, string> {
   const fields: Record<string, string> = {};

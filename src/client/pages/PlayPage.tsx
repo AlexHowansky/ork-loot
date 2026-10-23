@@ -9,7 +9,7 @@ import { useToast } from "../components/Toast.tsx";
 import { Icon, faArrowRightFromBracket } from "../components/Icon.tsx";
 
 export function PlayPage() {
-  const id = Number(useParams().id);
+  const id = useParams().id ?? "";
   const { data: view, error, isPending } = usePlay(id);
   const ask = useConfirm();
   const toast = useToast();

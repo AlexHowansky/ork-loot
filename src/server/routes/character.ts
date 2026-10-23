@@ -3,13 +3,13 @@ import type { Db } from "../db/client.ts";
 import { campaign, character, loot, splitShare } from "../db/schema.ts";
 import { newJoinCode, requireGm } from "../lib/auth.ts";
 import { conflict, notFound } from "../lib/errors.ts";
-import { idParam, readJson, type Router } from "../lib/http.ts";
+import { readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { ownedCampaign } from "../domain/campaign.ts";
 import { characterSchema } from "../../shared/schemas.ts";
 
 /** The character with this id if `gmId` runs its campaign; else a 404. */
-export function ownedCharacter(db: Db, gmId: number, characterId: number) {
+export function ownedCharacter(db: Db, gmId: string, characterId: string) {
   const row = db
     .select({ character })
     .from(character)
@@ -20,7 +20,7 @@ export function ownedCharacter(db: Db, gmId: number, characterId: number) {
   return row.character;
 }
 
-function assertNameFree(db: Db, campaignId: number, name: string, exceptId = 0) {
+function assertNameFree(db: Db, campaignId: string, name: string, exceptId = "") {
   const clash = db
     .select({ id: character.id })
     .from(character)
@@ -52,7 +52,7 @@ function freshCode(db: Db): string {
 
 export function characterRoutes(r: Router) {
   r.post("/api/campaigns/:id/characters", async (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, characterSchema);
     assertNameFree(ctx.db, c.id, input.name);
     const row = ctx.db
@@ -65,7 +65,7 @@ export function characterRoutes(r: Router) {
   });
 
   r.patch("/api/characters/:id", async (ctx) => {
-    const ch = ownedCharacter(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const ch = ownedCharacter(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, characterSchema);
     assertNameFree(ctx.db, ch.campaignId, input.name, ch.id);
     ctx.db.update(character).set(input).where(eq(character.id, ch.id)).run();
@@ -73,7 +73,7 @@ export function characterRoutes(r: Router) {
   });
 
   r.post("/api/characters/:id/code", (ctx) => {
-    const ch = ownedCharacter(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const ch = ownedCharacter(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const joinCode = freshCode(ctx.db);
     // A new code also signs out whoever holds the character now.
     ctx.db
@@ -90,7 +90,7 @@ export function characterRoutes(r: Router) {
   });
 
   r.delete("/api/characters/:id", (ctx) => {
-    const ch = ownedCharacter(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const ch = ownedCharacter(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     ctx.db.transaction((tx) => {
       const bought = tx
         .select({ n: sql<number>`count(*)` })

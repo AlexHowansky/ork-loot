@@ -18,6 +18,10 @@ document explains the requirements that must be adhered to.
 
 * Money is stored as integers in the campaign's minor unit, never as floats.
 
+* GMs, campaigns and characters have random UUID ids, since those ids can
+  appear in URLs and shouldn't be guessable by counting. Other tables keep
+  integer ids; they're only reached through an owned campaign.
+
 * Database tables should be named according to the singular form of a word, so
   prefer `user` over `users`.
 

@@ -13,7 +13,7 @@ export function CharacterForm({
   onClose,
   onSaved,
 }: {
-  campaignId: number;
+  campaignId: string;
   character?: CharacterView;
   onClose: () => void;
   onSaved: () => void;
@@ -69,7 +69,7 @@ export function SessionForm({
   onClose,
   onSaved,
 }: {
-  campaignId: number;
+  campaignId: string;
   session?: SessionView;
   onClose: () => void;
   onSaved: (id: number) => void;
@@ -125,7 +125,7 @@ export function ClaimForm({
 }: {
   item: LootView;
   campaign: CampaignInfo;
-  characterId: number;
+  characterId: string;
   onClose: () => void;
   onSaved: () => void;
 }) {

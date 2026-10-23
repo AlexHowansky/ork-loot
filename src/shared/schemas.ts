@@ -101,7 +101,7 @@ const lootFields = z.object({
     .min(0, { error: "Market % must be 0 to 100." })
     .max(100, { error: "Market % must be 0 to 100." }),
   status: z.enum(LOOT_STATUSES),
-  characterId: z.int().nullable(),
+  characterId: z.uuid({ error: "Choose a character." }).nullable(),
 });
 
 export const lootSchema = lootFields.extend({

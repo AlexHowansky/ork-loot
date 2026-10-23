@@ -14,7 +14,7 @@ import { formatMoney } from "../../shared/money.ts";
 import { Icon, faChevronDown, faPen, faScaleBalanced, faTrash, faImage } from "../components/Icon.tsx";
 
 export function CampaignPage() {
-  const id = Number(useParams().id);
+  const id = useParams().id ?? "";
   const { data: view, error, isPending } = useCampaign(id);
   const [editing, setEditing] = useState(false);
   const [splitting, setSplitting] = useState(false);

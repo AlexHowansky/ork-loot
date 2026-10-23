@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { campaign, loot, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { badRequest } from "../lib/errors.ts";
-import { idParam, readJson, type Router } from "../lib/http.ts";
+import { readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { removeImage, saveImage } from "../lib/upload.ts";
 import {
@@ -30,12 +30,12 @@ export function campaignRoutes(r: Router) {
   });
 
   r.get("/api/campaigns/:id", (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     return campaignView(ctx.db, c, { forGm: true });
   });
 
   r.patch("/api/campaigns/:id", async (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, campaignSchema);
     if (input.currencyDecimals !== c.currencyDecimals) {
       const hasLoot = ctx.db
@@ -68,7 +68,7 @@ export function campaignRoutes(r: Router) {
   });
 
   r.delete("/api/campaigns/:id", async (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     ctx.db.delete(campaign).where(eq(campaign.id, c.id)).run();
     await removeImage(ctx.config.uploadDir, c.backgroundImage);
     logger.info("campaign deleted", { requestId: ctx.requestId, campaignId: c.id });
@@ -76,7 +76,7 @@ export function campaignRoutes(r: Router) {
   });
 
   r.put("/api/campaigns/:id/image", async (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     let form: FormData;
     try {
       form = await ctx.req.formData();
@@ -92,19 +92,19 @@ export function campaignRoutes(r: Router) {
   });
 
   r.delete("/api/campaigns/:id/image", async (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     ctx.db.update(campaign).set({ backgroundImage: null }).where(eq(campaign.id, c.id)).run();
     await removeImage(ctx.config.uploadDir, c.backgroundImage);
     return { ok: true };
   });
 
   r.get("/api/campaigns/:id/split/preview", (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     return previewSplit(ctx.db, c);
   });
 
   r.post("/api/campaigns/:id/split", (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const result = runSplit(ctx.db, c);
     logger.info("loot split", {
       requestId: ctx.requestId,

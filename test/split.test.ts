@@ -36,9 +36,9 @@ describe("allocate", () => {
 
   test("divides by shares", () => {
     const out = allocate(1000, [
-      { id: 1, shares: 1, claimed: 0 },
-      { id: 2, shares: 1, claimed: 0 },
-      { id: 3, shares: 2, claimed: 0 },
+      { id: "1", shares: 1, claimed: 0 },
+      { id: "2", shares: 1, claimed: 0 },
+      { id: "3", shares: 2, claimed: 0 },
     ]);
     expect(out.perShare).toBe(250);
     expect(out.leftover).toBe(0);
@@ -47,10 +47,10 @@ describe("allocate", () => {
 
   test("every share is equal and the rest is left over", () => {
     const rows = [
-      { id: 1, shares: 1, claimed: 0 },
-      { id: 2, shares: 2, claimed: 0 },
-      { id: 3, shares: 3, claimed: 0 },
-      { id: 4, shares: 1, claimed: 0 },
+      { id: "1", shares: 1, claimed: 0 },
+      { id: "2", shares: 2, claimed: 0 },
+      { id: "3", shares: 3, claimed: 0 },
+      { id: "4", shares: 1, claimed: 0 },
     ];
     for (let total = 0; total < 200; total++) {
       const out = allocate(total, rows);
@@ -63,9 +63,9 @@ describe("allocate", () => {
 
   test("keeps leftover units out of the shares", () => {
     const out = allocate(10, [
-      { id: 1, shares: 1, claimed: 0 },
-      { id: 2, shares: 1, claimed: 0 },
-      { id: 3, shares: 1, claimed: 0 },
+      { id: "1", shares: 1, claimed: 0 },
+      { id: "2", shares: 1, claimed: 0 },
+      { id: "3", shares: 1, claimed: 0 },
     ]);
     expect(out.rows.map((a) => a.gross)).toEqual([3, 3, 3]);
     expect(out.leftover).toBe(1);
@@ -73,8 +73,8 @@ describe("allocate", () => {
 
   test("subtracts claims, allowing negative nets", () => {
     const out = allocate(1000, [
-      { id: 1, shares: 1, claimed: 800 },
-      { id: 2, shares: 1, claimed: 0 },
+      { id: "1", shares: 1, claimed: 800 },
+      { id: "2", shares: 1, claimed: 0 },
     ]);
     expect(out.rows[0]!.net).toBe(-300);
     expect(out.rows[1]!.net).toBe(500);

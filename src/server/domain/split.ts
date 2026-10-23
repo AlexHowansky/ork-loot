@@ -1,5 +1,5 @@
 export interface AllocationInput {
-  id: number;
+  id: string;
   shares: number;
   claimed: number;
 }

@@ -10,7 +10,7 @@ import { ownedSession } from "./session.ts";
 import { lootSchema, lootUpdateSchema } from "../../shared/schemas.ts";
 import { CHARACTER_STATUSES, type LootStatus } from "../../shared/status.ts";
 
-function ownedLoot(db: Db, gmId: number, lootId: number) {
+function ownedLoot(db: Db, gmId: string, lootId: number) {
   const row = db
     .select({ loot, campaignId: campaign.id })
     .from(loot)
@@ -28,10 +28,10 @@ function ownedLoot(db: Db, gmId: number, lootId: number) {
  */
 function checkOwner(
   db: Db,
-  campaignId: number,
+  campaignId: string,
   status: LootStatus,
-  characterId: number | null,
-): number | null {
+  characterId: string | null,
+): string | null {
   if (!CHARACTER_STATUSES.includes(status)) return null;
   if (characterId === null) {
     throw badRequest("Choose which character has this item.", {

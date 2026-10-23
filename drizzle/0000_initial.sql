@@ -1,6 +1,6 @@
 CREATE TABLE `campaign` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`gm_id` integer NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
+	`gm_id` text NOT NULL,
 	`name` text NOT NULL,
 	`start_date` text NOT NULL,
 	`background_image` text,
@@ -14,8 +14,8 @@ CREATE TABLE `campaign` (
 --> statement-breakpoint
 CREATE INDEX `campaign_gm_idx` ON `campaign` (`gm_id`);--> statement-breakpoint
 CREATE TABLE `character` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`campaign_id` integer NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
+	`campaign_id` text NOT NULL,
 	`name` text NOT NULL,
 	`shares` integer DEFAULT 1 NOT NULL,
 	`join_code` text,
@@ -29,7 +29,7 @@ CREATE UNIQUE INDEX `character_join_code_unique` ON `character` (`join_code`);--
 CREATE UNIQUE INDEX `character_campaign_name_idx` ON `character` (`campaign_id`,`name`);--> statement-breakpoint
 CREATE INDEX `character_player_idx` ON `character` (`player_id`);--> statement-breakpoint
 CREATE TABLE `gm` (
-	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`id` text PRIMARY KEY NOT NULL,
 	`username` text NOT NULL,
 	`password_hash` text NOT NULL,
 	`created_at` integer NOT NULL
@@ -38,7 +38,7 @@ CREATE TABLE `gm` (
 CREATE UNIQUE INDEX `gm_username_unique` ON `gm` (`username`);--> statement-breakpoint
 CREATE TABLE `login` (
 	`id` text PRIMARY KEY NOT NULL,
-	`gm_id` integer NOT NULL,
+	`gm_id` text NOT NULL,
 	`expires_at` integer NOT NULL,
 	`created_at` integer NOT NULL,
 	FOREIGN KEY (`gm_id`) REFERENCES `gm`(`id`) ON UPDATE no action ON DELETE cascade
@@ -54,7 +54,7 @@ CREATE TABLE `loot` (
 	`value` integer,
 	`market_pct` integer DEFAULT 50 NOT NULL,
 	`status` text DEFAULT 'active' NOT NULL,
-	`character_id` integer,
+	`character_id` text,
 	`split_id` integer,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE `player` (
 CREATE UNIQUE INDEX `player_token_hash_unique` ON `player` (`token_hash`);--> statement-breakpoint
 CREATE TABLE `session` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`campaign_id` integer NOT NULL,
+	`campaign_id` text NOT NULL,
 	`date` text NOT NULL,
 	`title` text,
 	`notes` text,
@@ -85,7 +85,7 @@ CREATE TABLE `session` (
 CREATE INDEX `session_campaign_idx` ON `session` (`campaign_id`);--> statement-breakpoint
 CREATE TABLE `split` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`campaign_id` integer NOT NULL,
+	`campaign_id` text NOT NULL,
 	`total` integer NOT NULL,
 	`total_shares` integer NOT NULL,
 	`created_at` integer NOT NULL,
@@ -96,7 +96,7 @@ CREATE INDEX `split_campaign_idx` ON `split` (`campaign_id`);--> statement-break
 CREATE TABLE `split_share` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`split_id` integer NOT NULL,
-	`character_id` integer,
+	`character_id` text,
 	`character_name` text NOT NULL,
 	`shares` integer NOT NULL,
 	`gross` integer NOT NULL,

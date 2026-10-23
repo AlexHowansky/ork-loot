@@ -3,13 +3,13 @@ import type { Db } from "../db/client.ts";
 import { campaign, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { notFound } from "../lib/errors.ts";
-import { idParam, readJson, type Router } from "../lib/http.ts";
+import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { ownedCampaign } from "../domain/campaign.ts";
 import { sessionSchema } from "../../shared/schemas.ts";
 
 /** The session with this id if `gmId` runs its campaign; else a 404. */
-export function ownedSession(db: Db, gmId: number, sessionId: number) {
+export function ownedSession(db: Db, gmId: string, sessionId: number) {
   const row = db
     .select({ session, campaign })
     .from(session)
@@ -22,7 +22,7 @@ export function ownedSession(db: Db, gmId: number, sessionId: number) {
 
 export function sessionRoutes(r: Router) {
   r.post("/api/campaigns/:id/sessions", async (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, sessionSchema);
     const row = ctx.db
       .insert(session)
