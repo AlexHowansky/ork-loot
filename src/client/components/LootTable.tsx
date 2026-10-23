@@ -10,7 +10,7 @@ import { LootForm } from "./LootForm.tsx";
 import { ClaimForm } from "./SimpleForms.tsx";
 import { useConfirm } from "./Confirm.tsx";
 import { useToast } from "./Toast.tsx";
-import { Icon, faArrowRotateLeft, faArrowUpRightFromSquare, faHandHolding, faPen, faPlus, faTrash } from "./Icon.tsx";
+import { Icon, faArrowRotateLeft, faArrowUpRightFromSquare, faHand, faPen, faPlus, faTrash } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
 export type StatusFilter = "pool" | "history" | "all";
@@ -253,7 +253,7 @@ export function LootTable({
                           disabled={busyId === item.id}
                           onClick={() => claim(item)}
                         >
-                          <Icon icon={faHandHolding} /> Claim
+                          <Icon icon={faHand} /> Claim
                         </button>
                       ) : mine && item.status === "claimed" ? (
                         <button
