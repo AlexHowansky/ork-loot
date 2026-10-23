@@ -128,7 +128,8 @@ they have claimed from the pool.
   shares (required, a whole number of at least 1, default 1.) Characters
   get a default join code which can be given to players. Once used, the code is
   invalidated. If the player misplaces the code, the GM can create a new one.
-  Whoever redeems the new code takes the character over.
+  Creating a new code signs out the character's current player at once;
+  whoever redeems the new code takes the character over.
 
 * A character who has taken part in a loot split can't be deleted, so split
   history stays intact. Deleting any other character returns their claims to

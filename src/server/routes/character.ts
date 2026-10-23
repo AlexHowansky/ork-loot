@@ -75,8 +75,17 @@ export function characterRoutes(r: Router) {
   r.post("/api/characters/:id/code", (ctx) => {
     const ch = ownedCharacter(ctx.db, requireGm(ctx).id, idParam(ctx));
     const joinCode = freshCode(ctx.db);
-    ctx.db.update(character).set({ joinCode }).where(eq(character.id, ch.id)).run();
-    logger.info("join code regenerated", { requestId: ctx.requestId, characterId: ch.id });
+    // A new code also signs out whoever holds the character now.
+    ctx.db
+      .update(character)
+      .set({ joinCode, playerId: null })
+      .where(eq(character.id, ch.id))
+      .run();
+    logger.info("join code regenerated", {
+      requestId: ctx.requestId,
+      characterId: ch.id,
+      signedOut: ch.playerId !== null,
+    });
     return { joinCode };
   });
 

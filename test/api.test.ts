@@ -149,10 +149,15 @@ describe("join codes", () => {
     expect((await join(code)).res.status).toBe(404);
 
     const fresh = (await gmA.post(`/api/characters/${characterIds[0]}/code`)).body.joinCode;
+    // The old browser loses the character as soon as the new code exists.
+    expect((await first.player.get(`/api/play/${characterIds[0]}`)).status).toBe(404);
+    expect((await first.player.get("/api/auth/me")).body.characters).toHaveLength(0);
+    const amiri = (await view()).characters.find((c) => c.name === "Amiri")!;
+    expect(amiri.hasPlayer).toBe(false);
+
     const second = await join(fresh);
     expect(second.res.status).toBe(200);
-    // The new player now owns the character; the old browser lost it.
-    expect((await first.player.get(`/api/play/${characterIds[0]}`)).status).toBe(404);
+    expect((await second.player.get(`/api/play/${characterIds[0]}`)).status).toBe(200);
   });
 
   test("one browser can hold several characters", async () => {

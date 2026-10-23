@@ -45,7 +45,7 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
       message: (
         <p>
           Any unused code for {c.name} stops working.
-          {c.hasPlayer && " Whoever redeems the new code takes the character over from its current player."}
+          {c.hasPlayer && ` Its current player loses access to ${c.name} straight away, until someone redeems the new code.`}
         </p>
       ),
       confirmLabel: "Create new code",
