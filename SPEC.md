@@ -60,6 +60,13 @@ they have claimed from the pool.
   places. The decimal places are locked once the campaign has any loot or
   any petty cash.
 
+* The campaign form has a game system selector, a shortcut that fills in the
+  currency label, decimal places and base reference URL; the choice itself
+  isn't stored, and it shows "Custom" when the fields match no system.
+  Pathfinder 2E Remaster is gp, 2 places, https://2e.aonprd.com/; Starfinder
+  2E is cr, 1 place, https://2e.aonsrd.com/. Once decimal places are locked,
+  systems that use different decimal places can't be picked.
+
 * Each campaign may set a base reference URL (an http or https address, e.g.
   a rules reference site). It will be used to build links to item details.
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api } from "../api.ts";
+import { GAME_SYSTEMS, matchGameSystem } from "../../shared/game-systems.ts";
 import { MAX_DECIMALS } from "../../shared/money.ts";
 import type { CampaignInfo } from "../../shared/types.ts";
 import { Field, FormError, withError } from "./Field.tsx";
@@ -29,6 +30,16 @@ export function CampaignForm({
   const [baseReferenceUrl, setReferenceUrl] = useState(campaign?.baseReferenceUrl ?? "");
   const [image, setImage] = useState<File | null>(null);
   const s = useSubmit();
+  // The selector just reflects the fields; editing one by hand shows "Custom".
+  const system = matchGameSystem({ currencyLabel, currencyDecimals, baseReferenceUrl });
+
+  const pickSystem = (id: string) => {
+    const g = GAME_SYSTEMS.find((g) => g.id === id);
+    if (!g) return;
+    setLabel(g.currencyLabel);
+    setDecimals(g.currencyDecimals);
+    setReferenceUrl(g.baseReferenceUrl);
+  };
 
   const submit = () =>
     s.run(async () => {
@@ -73,6 +84,31 @@ export function CampaignForm({
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
+        </Field>
+        <Field
+          label="Game system"
+          hint={
+            decimalsLocked
+              ? "Fills in the fields below. Systems with other decimal places are unavailable once loot is recorded."
+              : "Fills in the fields below."
+          }
+        >
+          <select
+            className="select w-full"
+            value={system?.id ?? ""}
+            onChange={(e) => pickSystem(e.target.value)}
+          >
+            <option value="">Custom</option>
+            {GAME_SYSTEMS.map((g) => (
+              <option
+                key={g.id}
+                value={g.id}
+                disabled={decimalsLocked && g.currencyDecimals !== currencyDecimals}
+              >
+                {g.name}
+              </option>
+            ))}
+          </select>
         </Field>
         <div className="flex gap-3">
           <Field label="Currency" error={s.fields.currencyLabel}>
