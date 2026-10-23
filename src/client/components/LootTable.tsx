@@ -3,7 +3,6 @@ import { api, errorMessage } from "../api.ts";
 import { useRefresh } from "../queries.ts";
 import type { CampaignView, LootView } from "../../shared/types.ts";
 import type { LootStatus } from "../../shared/status.ts";
-import { formatMoney } from "../../shared/money.ts";
 import { Money } from "./Money.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 import { LootForm } from "./LootForm.tsx";
@@ -29,6 +28,9 @@ const FILTER_LABEL: Record<StatusFilter, string> = {
   history: "Gone",
   all: "All",
 };
+
+/** Orders item names alphabetically, ignoring case and reading digits as numbers. */
+const byName = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 export function LootTable({
   view,
@@ -56,9 +58,9 @@ export function LootTable({
 
   const sessionById = new Map(view.sessions.map((s) => [s.id, s]));
   const nameById = new Map(view.characters.map((c) => [c.id, c.name]));
-  const rows = view.loot.filter(
-    (l) => FILTER[statusFilter](l.status) && (sessionFilter === "all" || l.sessionId === sessionFilter),
-  );
+  const rows = view.loot
+    .filter((l) => FILTER[statusFilter](l.status) && (sessionFilter === "all" || l.sessionId === sessionFilter))
+    .sort((a, b) => byName.compare(a.name, b.name) || a.id - b.id);
   const shownTotal = rows.reduce((n, l) => n + l.subtotal, 0);
 
   async function act(item: LootView, action: () => Promise<unknown>, done: string) {
@@ -184,14 +186,14 @@ export function LootTable({
           <table className="table table-sm">
             <thead>
               <tr>
-                <th>Item</th>
-                {sessionFilter === "all" && <th className="hidden md:table-cell">Session</th>}
+                <th className="w-full">Item</th>
                 <th className="text-right">Qty</th>
-                <th className="hidden text-right sm:table-cell">Value each</th>
+                <th className="hidden text-right sm:table-cell">Each</th>
                 <th className="hidden text-right sm:table-cell">Market</th>
                 <th className="text-right">Subtotal</th>
                 <th className="hidden sm:table-cell">Status</th>
-                <th className="hidden sm:table-cell">Claimed by</th>
+                <th className="hidden sm:table-cell">Claim</th>
+                {sessionFilter === "all" && <th className="hidden md:table-cell">Session</th>}
                 <th className="text-right">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -226,10 +228,26 @@ export function LootTable({
                         </div>
                       )}
                     </td>
+                    <td className="text-right tabular-nums">{item.quantity}</td>
+                    <td className="hidden text-right sm:table-cell">
+                      {item.value === null ? (
+                        <span className="text-base-content/50">—</span>
+                      ) : (
+                        <Money amount={item.value} campaign={campaign} />
+                      )}
+                    </td>
+                    <td className="hidden text-right tabular-nums sm:table-cell">{item.marketPct}%</td>
+                    <td className="text-right font-medium">
+                      <Money amount={item.subtotal} campaign={campaign} />
+                    </td>
+                    <td className="hidden sm:table-cell">
+                      <StatusBadge status={item.status} />
+                    </td>
+                    <td className="hidden whitespace-nowrap sm:table-cell">{claimant}</td>
                     {sessionFilter === "all" && (
                       <td className="hidden whitespace-nowrap text-base-content/70 md:table-cell">
                         {session?.title || session?.notes ? (
-                          <span className="tooltip tooltip-right">
+                          <span className="tooltip tooltip-left">
                             <span className="tooltip-content text-left">
                               {session.title && <span className="block font-semibold">{session.title}</span>}
                               {session.notes && <span className="block whitespace-pre-line">{session.notes}</span>}
@@ -241,24 +259,6 @@ export function LootTable({
                         )}
                       </td>
                     )}
-                    <td className="text-right tabular-nums">{item.quantity}</td>
-                    <td className="hidden text-right sm:table-cell">
-                      {item.value === null ? (
-                        <span className="text-base-content/50">—</span>
-                      ) : (
-                        <span className="tabular-nums whitespace-nowrap">
-                          {formatMoney(item.value, campaign.currencyDecimals, "")}
-                        </span>
-                      )}
-                    </td>
-                    <td className="hidden text-right tabular-nums sm:table-cell">{item.marketPct}%</td>
-                    <td className="text-right font-medium">
-                      <Money amount={item.subtotal} campaign={campaign} />
-                    </td>
-                    <td className="hidden sm:table-cell">
-                      <StatusBadge status={item.status} />
-                    </td>
-                    <td className="hidden whitespace-nowrap sm:table-cell">{claimant}</td>
                     <td className="text-right whitespace-nowrap">
                       {gm ? (
                         <>
