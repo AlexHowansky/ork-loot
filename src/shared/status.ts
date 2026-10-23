@@ -4,7 +4,7 @@ export const LOOT_STATUSES = [
   "claimed",
   "bought",
   "sold",
-  "left",
+  "abandoned",
 ] as const;
 
 export type LootStatus = (typeof LOOT_STATUSES)[number];
@@ -21,9 +21,9 @@ export const CHARACTER_STATUSES: readonly LootStatus[] = ["claimed", "bought"];
 
 export const STATUS_LABEL: Record<LootStatus, string> = {
   available: "Available",
-  party: "Party fund",
+  party: "Party",
   claimed: "Claimed",
   bought: "Bought",
   sold: "Sold",
-  left: "Left behind",
+  abandoned: "Abandoned",
 };

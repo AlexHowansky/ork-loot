@@ -19,7 +19,7 @@ const FILTER: Record<StatusFilter, (s: LootStatus) => boolean> = {
   pool: (s) => s === "available" || s === "party" || s === "claimed",
   // Available items are in the pool and nobody has claimed them yet.
   available: (s) => s === "available",
-  history: (s) => s === "sold" || s === "bought" || s === "left",
+  history: (s) => s === "sold" || s === "bought" || s === "abandoned",
   all: () => true,
 };
 
@@ -79,7 +79,7 @@ export function LootTable({
       title: "Delete this item?",
       message: (
         <p>
-          <strong>{item.name}</strong> will be removed for good. To record that it was sold or left behind,
+          <strong>{item.name}</strong> will be removed for good. To record that it was sold or abandoned,
           change its status instead.
         </p>
       ),

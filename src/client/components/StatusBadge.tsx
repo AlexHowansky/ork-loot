@@ -6,7 +6,7 @@ const COLOR: Record<LootStatus, string> = {
   claimed: "badge-warning",
   bought: "badge-neutral",
   sold: "badge-ghost",
-  left: "badge-ghost",
+  abandoned: "badge-ghost",
 };
 
 export function StatusBadge({ status }: { status: LootStatus }) {

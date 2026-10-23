@@ -334,7 +334,7 @@ describe("loot split", () => {
     await add({ name: "Sword", value: 2000 });
     await add({ name: "Gem", quantity: 3, value: 400 });
     await add({ name: "Fund", value: 800, status: "party" });
-    await add({ name: "Junk", value: 100, status: "left" });
+    await add({ name: "Junk", value: 100, status: "abandoned" });
     const ring = (await add({ name: "Ring", value: 800, status: "claimed", characterId: characterIds[0] })).body;
 
     const before = await view();
@@ -355,7 +355,7 @@ describe("loot split", () => {
     expect(status("Sword")).toBe("sold");
     expect(status("Gem")).toBe("sold");
     expect(status("Fund")).toBe("party");
-    expect(status("Junk")).toBe("left");
+    expect(status("Junk")).toBe("abandoned");
     expect(after.loot.find((l) => l.id === ring.id)!.status).toBe("bought");
     expect(after.pool.sellable).toBe(0);
     expect(after.splits).toHaveLength(1);

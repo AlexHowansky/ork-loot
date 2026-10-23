@@ -100,19 +100,25 @@ they have claimed from the pool.
   character who claimed or bought it in a separate "Claimed by" column.
 
 * The loot table filters by session and by status: "In pool" (available, party
-  and claimed), "Available" (not yet claimed), "Gone" (sold, bought and left)
-  and "All".
+  and claimed), "Available" (not yet claimed), "Gone" (sold, bought and
+  abandoned) and "All".
 
-* Statuses are as follows:
-    * available: In the loot pool and free to be claimed. Will be sold
-                 during a loot split. The default for new items.
-    * party: In the loot pool and reserved as party fund. Will not be sold
-             during a loot split.
-    * sold: Sold, no longer in the loot pool. Kept for historical purposes.
-    * left: Dropped, left behind, or never picked up. Informational only.
-    * claimed: Still in the loot pool but claimed by a character. This item's
-               value will be deducted from the claiming player's split.
-    * bought: Purchased by a character, no longer in the loot pool.
+* Item statuses are as follows:
+    * Available: This item is in the current loot pool, is free to be claimed,
+                 and will be sold during the next split. This is the default for
+                 new items.
+    * Claimed: This item is in the current loot pool and has been claimed by a
+               character. Its market value will be deducted from the claiming
+               player's next split.
+    * Party: This item has been set aside into a party fund, can not be claimed,
+             and will not be sold during the next split. This is useful for
+             shared items or emergency use items.
+    * Sold: This item went unclaimed and was sold during a prior split. It is
+            listed here for historical purposes only.
+    * Bought: This item was claimed and had its value accounted for during a
+              prior split. It is listed here for historical purposes only.
+    * Abandoned: This item was discarded or never picked up. It is listed here
+                 for informational purposes only.
 
 * Each loot row should calculate a subtotal of quantity times value, further
   adjusted for market percentage.
