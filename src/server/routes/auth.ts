@@ -43,15 +43,15 @@ export function authRoutes(r: Router) {
 
   r.post("/api/auth/login", async (ctx) => {
     loginLimiter.hit(ctx.ip);
-    const { username, password } = await readJson(ctx, loginSchema);
-    const gm = await verifyCredentials(ctx.db, username, password);
+    const { email, password } = await readJson(ctx, loginSchema);
+    const gm = await verifyCredentials(ctx.db, email, password);
     if (!gm) {
       logger.warn("login failed", { requestId: ctx.requestId, ip: ctx.ip });
-      throw new AppError(401, "That username and password don't match.");
+      throw new AppError(401, "That email address and password don't match.");
     }
     startLogin(ctx, gm.id);
     logger.info("login", { requestId: ctx.requestId, gmId: gm.id });
-    return { gm: { id: gm.id, username: gm.username }, characters: me(ctx).characters };
+    return { gm: { id: gm.id, email: gm.email }, characters: me(ctx).characters };
   });
 
   r.post("/api/auth/logout", (ctx) => {

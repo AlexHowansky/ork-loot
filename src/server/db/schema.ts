@@ -26,7 +26,7 @@ const updatedAt = () =>
 
 export const gm = sqliteTable("gm", {
   id: uuid(),
-  username: text("username").notNull().unique(),
+  email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: createdAt(),
 });

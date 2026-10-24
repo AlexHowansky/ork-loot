@@ -34,12 +34,12 @@ CREATE UNIQUE INDEX `character_campaign_name_idx` ON `character` (`campaign_id`,
 CREATE INDEX `character_player_idx` ON `character` (`player_id`);--> statement-breakpoint
 CREATE TABLE `gm` (
 	`id` text PRIMARY KEY NOT NULL,
-	`username` text NOT NULL,
+	`email` text NOT NULL,
 	`password_hash` text NOT NULL,
 	`created_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `gm_username_unique` ON `gm` (`username`);--> statement-breakpoint
+CREATE UNIQUE INDEX `gm_email_unique` ON `gm` (`email`);--> statement-breakpoint
 CREATE TABLE `login` (
 	`id` text PRIMARY KEY NOT NULL,
 	`gm_id` text NOT NULL,

@@ -9,7 +9,9 @@ We define the following terms:
 
 ### GM
 
-An authenticated app user with elevated permissions.
+An authenticated app user with elevated permissions. A GM signs in with an
+email address and a password. Email addresses are unique and ignore case
+and surrounding spaces.
 
 ### Character
 

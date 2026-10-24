@@ -29,9 +29,9 @@ export function makeApp() {
   return { db, uploadDir, app };
 }
 
-export async function addGm(db: Db, username: string, password = "correct horse battery") {
+export async function addGm(db: Db, email: string, password = "correct horse battery") {
   const passwordHash = await hashPassword(password);
-  return db.insert(gm).values({ username, passwordHash }).returning().get();
+  return db.insert(gm).values({ email, passwordHash }).returning().get();
 }
 
 /** A browser-like client with its own cookie jar. */
@@ -75,7 +75,7 @@ export class Client {
   patch = <T = any>(p: string, b: unknown) => this.call<T>("PATCH", p, b);
   del = <T = any>(p: string) => this.call<T>("DELETE", p);
 
-  login(username: string, password = "correct horse battery") {
-    return this.post("/api/auth/login", { username, password });
+  login(email: string, password = "correct horse battery") {
+    return this.post("/api/auth/login", { email, password });
   }
 }

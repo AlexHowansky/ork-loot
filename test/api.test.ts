@@ -9,10 +9,10 @@ let gmA: Client;
 
 beforeEach(async () => {
   ctx = makeApp();
-  await addGm(ctx.db, "alice");
-  await addGm(ctx.db, "bob");
+  await addGm(ctx.db, "alice@example.com");
+  await addGm(ctx.db, "bob@example.com");
   gmA = new Client(ctx.app);
-  expect((await gmA.login("alice")).status).toBe(200);
+  expect((await gmA.login("alice@example.com")).status).toBe(200);
 });
 
 const campaignBody = {
@@ -42,15 +42,27 @@ async function join(code: string, ip?: string) {
 
 describe("auth", () => {
   test("rejects a wrong password with a friendly message", async () => {
-    const res = await new Client(ctx.app).login("alice", "nope");
+    const res = await new Client(ctx.app).login("alice@example.com", "nope");
     expect(res.status).toBe(401);
     expect(res.body.error).toContain("don't match");
   });
 
   test("unknown users get the same message", async () => {
-    const res = await new Client(ctx.app).login("mallory", "nope");
+    const res = await new Client(ctx.app).login("mallory@example.com", "nope");
     expect(res.status).toBe(401);
     expect(res.body.error).toContain("don't match");
+  });
+
+  test("signs in by email address, ignoring case and spaces", async () => {
+    const res = await new Client(ctx.app).login("  Alice@Example.COM ");
+    expect(res.status).toBe(200);
+    expect(res.body.gm.email).toBe("alice@example.com");
+  });
+
+  test("refuses a sign-in name that isn't an email address", async () => {
+    const res = await new Client(ctx.app).login("alice");
+    expect(res.status).toBe(400);
+    expect(res.body.fields.email).toContain("valid email address");
   });
 
   test("logout ends the session", async () => {
@@ -61,7 +73,7 @@ describe("auth", () => {
   test("rate limits login attempts", async () => {
     const c = new Client(ctx.app, "10.9.9.9");
     let last = 0;
-    for (let i = 0; i < 12; i++) last = (await c.login("alice", "wrong")).status;
+    for (let i = 0; i < 12; i++) last = (await c.login("alice@example.com", "wrong")).status;
     expect(last).toBe(429);
   });
 
@@ -86,7 +98,7 @@ describe("campaign access", () => {
   test("one GM can't see or change another GM's campaign", async () => {
     const { campaignId, characterIds, sessionId } = await seed();
     const gmB = new Client(ctx.app);
-    await gmB.login("bob");
+    await gmB.login("bob@example.com");
     expect((await gmB.get(`/api/campaigns/${campaignId}`)).status).toBe(404);
     expect((await gmB.patch(`/api/campaigns/${campaignId}`, campaignBody)).status).toBe(404);
     expect((await gmB.del(`/api/campaigns/${campaignId}`)).status).toBe(404);
@@ -273,7 +285,7 @@ describe("claims", () => {
     expect(res.status).toBe(400);
     expect(res.body.fields.characterId).toBeDefined();
     const gmB = new Client(ctx.app);
-    await gmB.login("bob");
+    await gmB.login("bob@example.com");
     expect((await gmB.post(`/api/loot/${potion.id}/claim`, { characterId: other.characterIds[0], quantity: 1 })).status).toBe(404);
   });
 
@@ -504,7 +516,7 @@ describe("loot split", () => {
     await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Ring", value: 800, status: "claimed", characterId: amiri });
     const s = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
     const gmB = new Client(ctx.app);
-    await gmB.login("bob");
+    await gmB.login("bob@example.com");
     expect((await gmB.del(`/api/campaigns/${campaignId}/splits/${s.id}`)).status).toBe(404);
     expect((await gmA.del(`/api/campaigns/${campaignId}/splits/${s.id}`)).status).toBe(200);
     expect((await view()).loot.find((l) => l.name === "Ring")).toMatchObject({ status: "claimed", characterId: amiri });
@@ -786,7 +798,7 @@ describe("petty cash", () => {
     expect(play.pettyCash.map((e) => e.amount)).toEqual([300]);
     expect((await player.post(entries, { date: "2026-02-01", description: "x", amount: 1 })).status).toBe(401);
     const gmB = new Client(ctx.app);
-    await gmB.login("bob");
+    await gmB.login("bob@example.com");
     expect((await gmB.post(entries, { date: "2026-02-01", description: "x", amount: 1 })).status).toBe(404);
     expect((await gmB.del(`/api/petty-cash/${paidIn.id}`)).status).toBe(404);
     now = await view();
@@ -941,7 +953,7 @@ describe("reference search", () => {
   test("is only available to the campaign's GM", async () => {
     const { campaignId } = await seed();
     const gmB = new Client(ctx.app, "10.0.0.2");
-    await gmB.login("bob");
+    await gmB.login("bob@example.com");
     expect((await gmB.get(`/api/campaigns/${campaignId}/reference?q=rope`)).status).toBe(404);
   });
 });
@@ -1056,7 +1068,7 @@ describe("live updates", () => {
   test("streams need access to the campaign", async () => {
     const { campaignId, characterIds } = await seed();
     const gmB = new Client(ctx.app, "10.0.0.2");
-    await gmB.login("bob");
+    await gmB.login("bob@example.com");
     expect((await gmB.raw("GET", `/api/campaigns/${campaignId}/events`)).status).toBe(404);
     const stranger = new Client(ctx.app, "10.0.0.3");
     expect((await stranger.raw("GET", `/api/play/${characterIds[0]}/events`)).status).toBe(401);

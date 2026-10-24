@@ -3,7 +3,7 @@ import type { LootStatus } from "./status.ts";
 /** Shapes returned by the JSON API. Money is in minor units. */
 
 export interface Me {
-  gm: { id: string; username: string } | null;
+  gm: { id: string; email: string } | null;
   characters: PlayerCharacter[];
 }
 

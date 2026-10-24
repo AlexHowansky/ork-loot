@@ -32,7 +32,7 @@ You'll need [Bun](https://bun.sh) installed.
 
 ```sh
 bun install
-bun run gm create <username>   # create a GM account
+bun run gm create <email>      # create a GM account
 bun run dev                    # http://localhost:3000
 ```
 
@@ -45,8 +45,8 @@ reloading is off, so refresh the page after changing client code.
 | ------------------------------- | ---------------------------------------- |
 | `bun run dev`                   | Start the server with hot reload         |
 | `bun run start`                 | Start the server in production mode      |
-| `bun run gm create <username>`  | Create a GM account                      |
-| `bun run gm passwd <username>`  | Change a GM's password                   |
+| `bun run gm create <email>`     | Create a GM account                      |
+| `bun run gm passwd <email>`     | Change a GM's password                   |
 | `bun run gm list`               | List GM accounts                         |
 | `bun test`                      | Run the unit, API and UI-rule tests      |
 | `bun run typecheck`             | Type-check with tsc                      |

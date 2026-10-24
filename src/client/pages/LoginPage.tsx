@@ -7,7 +7,7 @@ import { Field, FormError, withError } from "../components/Field.tsx";
 import type { Me } from "../../shared/types.ts";
 
 export function LoginPage() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -20,7 +20,7 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      const me = await api.post<Me>("/api/auth/login", { username, password });
+      const me = await api.post<Me>("/api/auth/login", { email, password });
       qc.setQueryData(keys.me, me);
       navigate("/");
     } catch (err) {
@@ -35,13 +35,14 @@ export function LoginPage() {
       <div className="card-body">
         <h1 className="card-title">GM sign in</h1>
         <FormError message={error && !Object.keys(fields).length ? errorMessage(error) : null} />
-        <Field label="Username" error={fields.username}>
+        <Field label="Email address" error={fields.email}>
           <input
-            className={withError("input w-full", fields.username)}
+            type="email"
+            className={withError("input w-full", fields.email)}
             autoComplete="username"
             autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
         <Field label="Password" error={fields.password}>

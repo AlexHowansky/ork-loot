@@ -29,15 +29,15 @@ export function hashPassword(password: string): Promise<string> {
 let dummyHash: Promise<string> | undefined;
 
 /**
- * Checks a username and password. Unknown usernames still pay for a hash
- * verification so response timing doesn't reveal which usernames exist.
+ * Checks an email address and password. Unknown addresses still pay for a
+ * hash verification so response timing doesn't reveal which ones exist.
  */
 export async function verifyCredentials(
   db: Db,
-  username: string,
+  email: string,
   password: string,
 ) {
-  const row = db.select().from(gm).where(eq(gm.username, username)).get();
+  const row = db.select().from(gm).where(eq(gm.email, email)).get();
   if (!row) {
     dummyHash ??= hashPassword("not-a-real-password");
     await Bun.password.verify(password, await dummyHash);
@@ -99,7 +99,7 @@ export function currentGm(ctx: Ctx) {
       }),
     );
   }
-  return { id: row.gm.id, username: row.gm.username };
+  return { id: row.gm.id, email: row.gm.email };
 }
 
 export function requireGm(ctx: Ctx) {

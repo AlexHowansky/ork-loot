@@ -119,7 +119,7 @@ export function Layout() {
           {me?.gm ? (
             <button type="button" className="btn btn-ghost btn-sm" onClick={logout}>
               <Icon icon={faArrowRightFromBracket} />
-              <span className="hidden sm:inline">Sign out {me.gm.username}</span>
+              <span className="hidden sm:inline">Sign out {me.gm.email}</span>
             </button>
           ) : (
             <Link to="/login" className="btn btn-ghost btn-sm">

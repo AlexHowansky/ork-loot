@@ -260,8 +260,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "username": {
-          "name": "username",
+        "email": {
+          "name": "email",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -283,10 +283,10 @@
         }
       },
       "indexes": {
-        "gm_username_unique": {
-          "name": "gm_username_unique",
+        "gm_email_unique": {
+          "name": "gm_email_unique",
           "columns": [
-            "username"
+            "email"
           ],
           "isUnique": true
         }

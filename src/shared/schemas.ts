@@ -44,8 +44,16 @@ function isWebUrl(s: string): boolean {
   }
 }
 
+/** A GM's email address, which is also their sign-in name; kept in lowercase. */
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, { error: "Enter your email address." })
+  .pipe(z.email({ error: "Enter a valid email address, like name@example.com." }));
+
 export const loginSchema = z.object({
-  username: z.string().trim().min(1, { error: "Enter your username." }),
+  email: emailSchema,
   password: z.string().min(1, { error: "Enter your password." }),
 });
 

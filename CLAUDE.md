@@ -87,7 +87,7 @@ The product specification (terms and features) is in @SPEC.md.
 
 * `bun run dev` starts the server with hot reload on port 3000. Browser HMR
   is off (it breaks daisyUI CSS), so refresh the page after client changes.
-* `bun run gm create|passwd <username>` and `bun run gm list` manage GMs.
+* `bun run gm create|passwd <email>` and `bun run gm list` manage GMs.
 * `bun test` runs the unit, API and UI-rule tests; `bun run typecheck` runs
   tsc.
 * `bun run db:generate` writes a migration after a schema change.
