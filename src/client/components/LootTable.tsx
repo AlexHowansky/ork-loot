@@ -58,6 +58,9 @@ export function LootTable({
 
   const sessionById = new Map(view.sessions.map((s) => [s.id, s]));
   const nameById = new Map(view.characters.map((c) => [c.id, c.name]));
+  // Characters without shares can't claim loot.
+  const claimants = view.characters.filter((c) => c.shares > 0);
+  const canClaim = mode.kind === "gm" ? claimants.length > 0 : claimants.some((c) => c.id === mode.characterId);
   const rows = view.loot
     .filter((l) => FILTER[statusFilter](l.status) && (sessionFilter === "all" || l.sessionId === sessionFilter))
     .sort((a, b) => byName.compare(a.name, b.name) || a.id - b.id);
@@ -262,7 +265,7 @@ export function LootTable({
                     <td className="text-right whitespace-nowrap">
                       {gm ? (
                         <>
-                          {item.status === "available" && view.characters.length > 0 && claimButton(item)}
+                          {item.status === "available" && canClaim && claimButton(item)}
                           {item.status === "claimed" && releaseButton(item)}
                           <button
                             type="button"
@@ -282,7 +285,7 @@ export function LootTable({
                             <Icon icon={faTrash} />
                           </button>
                         </>
-                      ) : item.status === "available" ? (
+                      ) : item.status === "available" && canClaim ? (
                         claimButton(item)
                       ) : mine && item.status === "claimed" ? (
                         releaseButton(item)
@@ -309,7 +312,7 @@ export function LootTable({
         <ClaimForm
           item={claiming}
           campaign={campaign}
-          {...(mode.kind === "player" ? { characterId: mode.characterId } : { characters: view.characters })}
+          {...(mode.kind === "player" ? { characterId: mode.characterId } : { characters: claimants })}
           onClose={() => setClaiming(null)}
           onSaved={(forName) => {
             toast(forName ? `Claimed ${claiming.name} for ${forName}.` : `Claimed ${claiming.name}.`);

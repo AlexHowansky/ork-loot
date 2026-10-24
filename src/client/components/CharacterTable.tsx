@@ -174,8 +174,18 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
         <CharacterForm
           campaignId={campaign.id}
           character={editing === "new" ? undefined : editing}
+          claimCount={
+            editing === "new"
+              ? 0
+              : view.loot.filter((l) => l.status === "claimed" && l.characterId === editing.id).length
+          }
           onClose={() => setEditing(null)}
-          onSaved={refresh}
+          onSaved={(released) => {
+            if (released > 0) {
+              toast(`Released ${released} ${released === 1 ? "claim" : "claims"} back to the pool.`);
+            }
+            refresh();
+          }}
         />
       )}
     </div>

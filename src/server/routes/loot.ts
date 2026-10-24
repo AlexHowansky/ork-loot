@@ -6,7 +6,7 @@ import { badRequest, notFound } from "../lib/errors.ts";
 import { idParam, readJson, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { lootView } from "../domain/campaign.ts";
-import { claimLoot, releaseLoot } from "../domain/loot.ts";
+import { assertCanClaim, claimLoot, releaseLoot } from "../domain/loot.ts";
 import { ownedSession } from "./session.ts";
 import { gmClaimSchema, lootSchema, lootUpdateSchema } from "../../shared/schemas.ts";
 import { CHARACTER_STATUSES, type LootStatus } from "../../shared/status.ts";
@@ -38,8 +38,8 @@ function campaignCharacter(db: Db, campaignId: string, characterId: string) {
 }
 
 /**
- * Claimed and bought items need a character from this campaign; every
- * other status clears it.
+ * Claimed and bought items need a character from this campaign, and a
+ * claim needs one with shares; every other status clears it.
  */
 function checkOwner(
   db: Db,
@@ -53,7 +53,9 @@ function checkOwner(
       characterId: "Required for claimed or bought items.",
     });
   }
-  return campaignCharacter(db, campaignId, characterId).id;
+  const ch = campaignCharacter(db, campaignId, characterId);
+  if (status === "claimed") assertCanClaim(ch);
+  return ch.id;
 }
 
 export function lootRoutes(r: Router) {

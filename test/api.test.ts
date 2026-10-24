@@ -408,6 +408,78 @@ describe("loot split", () => {
     expect((await gmA.del(`/api/characters/${characterIds[0]}`)).status).toBe(409);
   });
 
+  test("characters with no shares sit a split out", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri, ezren, valeros] = characterIds as [string, string, string];
+    expect((await gmA.patch(`/api/characters/${ezren}`, { name: "Ezren", shares: 0 })).status).toBe(200);
+    expect((await gmA.patch(`/api/characters/${amiri}`, { name: "Amiri", shares: -1 })).status).toBe(400);
+    // Subtotals at 50%: sword 1000, ring 200 claimed by Amiri.
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Sword", value: 2000 });
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Ring", value: 400, status: "claimed", characterId: amiri });
+    expect((await view()).pool.totalShares).toBe(3);
+
+    const res = await gmA.post(`/api/campaigns/${campaignId}/split`);
+    expect(res.status).toBe(200);
+    // Ezren has no shares, so isn't in the split at all.
+    const byName = Object.fromEntries(res.body.shares.map((s: any) => [s.characterName, s]));
+    expect(Object.keys(byName).sort()).toEqual(["Amiri", "Valeros"]);
+    expect(byName.Amiri).toMatchObject({ gross: 400, claimed: 200, net: 200 });
+    expect(byName.Valeros).toMatchObject({ gross: 800, net: 800 });
+    expect((await gmA.del(`/api/characters/${ezren}`)).status).toBe(200);
+    expect((await gmA.del(`/api/characters/${valeros}`)).status).toBe(409);
+  });
+
+  test("characters with no shares can't claim", async () => {
+    const { campaignId, sessionId, characterIds } = await seed();
+    const [amiri] = characterIds as [string];
+    const amiriCode = (await gmA.get<CampaignView>(`/api/campaigns/${campaignId}`)).body.characters.find(
+      (c) => c.id === amiri,
+    )!.joinCode!;
+    const { player } = await join(amiriCode);
+    await gmA.patch(`/api/characters/${amiri}`, { name: "Amiri", shares: 0 });
+    const add = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, body);
+    const sword = (await add({ name: "Sword", value: 2000 })).body;
+
+    const mine = await player.post(`/api/play/${amiri}/claim`, { lootId: sword.id, quantity: 1 });
+    expect(mine.status).toBe(400);
+    expect(mine.body.error).toContain("no shares");
+    const forThem = await gmA.post(`/api/loot/${sword.id}/claim`, { characterId: amiri, quantity: 1 });
+    expect(forThem.status).toBe(400);
+    expect((await add({ name: "Ring", value: 400, status: "claimed", characterId: amiri })).status).toBe(400);
+    expect((await gmA.patch(`/api/loot/${sword.id}`, { status: "claimed", characterId: amiri })).status).toBe(400);
+  });
+
+  test("dropping a character to no shares releases their claims", async () => {
+    const { sessionId, characterIds, view } = await seed();
+    const [amiri, ezren] = characterIds as [string, string];
+    const add = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, body);
+    const gems = (await add({ name: "Gem", quantity: 3, value: 400 })).body;
+    await gmA.post(`/api/loot/${gems.id}/claim`, { characterId: amiri, quantity: 2 });
+    await add({ name: "Ring", value: 400, status: "claimed", characterId: amiri });
+    await add({ name: "Wand", value: 400, status: "claimed", characterId: ezren });
+
+    const res = await gmA.patch(`/api/characters/${amiri}`, { name: "Amiri", shares: 0 });
+    expect(res.body.released).toBe(2);
+    const loot = (await view()).loot;
+    // The gems merge back into one available stack.
+    expect(loot.filter((l) => l.name === "Gem")).toMatchObject([{ quantity: 3, status: "available" }]);
+    expect(loot.find((l) => l.name === "Ring")).toMatchObject({ status: "available", characterId: null });
+    expect(loot.find((l) => l.name === "Wand")).toMatchObject({ status: "claimed", characterId: ezren });
+    // Saving again with shares changes nothing else.
+    expect((await gmA.patch(`/api/characters/${ezren}`, { name: "Ezren", shares: 2 })).body.released).toBe(0);
+  });
+
+  test("a split needs at least one share", async () => {
+    const { campaignId, sessionId, characterIds } = await seed();
+    for (const [i, name] of ["Amiri", "Ezren", "Valeros"].entries()) {
+      await gmA.patch(`/api/characters/${characterIds[i]}`, { name, shares: 0 });
+    }
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Sword", value: 2000 });
+    const res = await gmA.post(`/api/campaigns/${campaignId}/split`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("at least one character a share");
+  });
+
   test("a partial update leaves other fields alone", async () => {
     const { sessionId } = await seed();
     const gem = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gem", quantity: 4, value: 900, marketPct: 80 })).body;

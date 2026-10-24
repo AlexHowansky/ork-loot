@@ -74,7 +74,7 @@ export const characterSchema = z.object({
   name: name("Name"),
   shares: z
     .int({ error: "Shares must be a whole number." })
-    .min(1, { error: "A character needs at least 1 share." })
+    .min(0, { error: "Shares can't be negative." })
     .max(100, { error: "Shares must be 100 or fewer." })
     .default(1),
 });

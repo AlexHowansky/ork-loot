@@ -6,29 +6,54 @@ import { Field, FormError, withError } from "./Field.tsx";
 import { Modal } from "./Modal.tsx";
 import { CancelButton, SubmitButton } from "./SubmitButton.tsx";
 import { useSubmit } from "./useSubmit.ts";
+import { useConfirm } from "./Confirm.tsx";
 
 export function CharacterForm({
   campaignId,
   character,
+  claimCount = 0,
   onClose,
   onSaved,
 }: {
   campaignId: string;
   character?: CharacterView;
+  /** How many loot rows the character has claimed. */
+  claimCount?: number;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (released: number) => void;
 }) {
   const [name, setName] = useState(character?.name ?? "");
   const [shares, setShares] = useState(String(character?.shares ?? 1));
   const s = useSubmit();
-  const submit = () =>
-    s.run(async () => {
-      const body = { name, shares: Number(shares) };
-      if (character) await api.patch(`/api/characters/${character.id}`, body);
-      else await api.post(`/api/campaigns/${campaignId}/characters`, body);
-      onSaved();
+  const ask = useConfirm();
+  const submit = async () => {
+    const body = { name, shares: Number(shares) };
+    // A character without shares can't hold claims; the server releases them.
+    if (character && body.shares === 0 && claimCount > 0) {
+      const ok = await ask({
+        title: "Release their claims?",
+        message: (
+          <p>
+            With no shares, <strong>{character.name}</strong> can't claim loot. Their {claimCount}{" "}
+            {claimCount === 1 ? "claim goes" : "claims go"} back to the pool.
+          </p>
+        ),
+        confirmLabel: "Release claims and save",
+        danger: true,
+      });
+      if (!ok) return;
+    }
+    await s.run(async () => {
+      if (character) {
+        const res = await api.patch<{ released: number }>(`/api/characters/${character.id}`, body);
+        onSaved(res.released);
+      } else {
+        await api.post(`/api/campaigns/${campaignId}/characters`, body);
+        onSaved(0);
+      }
       onClose();
     });
+  };
   return (
     <Modal
       title={character ? "Edit character" : "Add character"}
@@ -46,10 +71,10 @@ export function CharacterForm({
         <Field label="Name" error={s.fields.name}>
           <input className={withError("input w-full", s.fields.name)} data-autofocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
-        <Field label="Shares" error={s.fields.shares} hint="How many shares of each split this character gets.">
+        <Field label="Shares" error={s.fields.shares} hint="How many shares of each split this character gets. Use 0 for a character who sits splits out; they can't claim loot.">
           <input
             type="number"
-            min={1}
+            min={0}
             step={1}
             className={withError("input w-24", s.fields.shares)}
             value={shares}

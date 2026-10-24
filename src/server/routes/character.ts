@@ -6,6 +6,7 @@ import { conflict, notFound } from "../lib/errors.ts";
 import { readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { ownedCampaign } from "../domain/campaign.ts";
+import { releaseAllClaims } from "../domain/loot.ts";
 import { characterSchema } from "../../shared/schemas.ts";
 
 /** The character with this id if `gmId` runs its campaign; else a 404. */
@@ -68,8 +69,24 @@ export function characterRoutes(r: Router) {
     const ch = ownedCharacter(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, characterSchema);
     assertNameFree(ctx.db, ch.campaignId, input.name, ch.id);
-    ctx.db.update(character).set(input).where(eq(character.id, ch.id)).run();
-    return { id: ch.id };
+    // A character without shares can't hold claims, so they go back.
+    const released = ctx.db.transaction((tx) => {
+      const updated = tx
+        .update(character)
+        .set(input)
+        .where(eq(character.id, ch.id))
+        .returning()
+        .get()!;
+      return updated.shares === 0 ? releaseAllClaims(tx, updated) : 0;
+    });
+    if (released > 0) {
+      logger.info("claims released for share-less character", {
+        requestId: ctx.requestId,
+        characterId: ch.id,
+        released,
+      });
+    }
+    return { id: ch.id, released };
   });
 
   r.post("/api/characters/:id/code", (ctx) => {

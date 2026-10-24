@@ -25,7 +25,7 @@ export function SplitModal({
     gcTime: 0,
   });
   const s = useSubmit();
-  const empty = preview.data && (preview.data.total === 0 || preview.data.shares.length === 0);
+  const empty = preview.data && (preview.data.total === 0 || preview.data.totalShares === 0);
 
   const submit = () =>
     s.run(async () => {
@@ -61,8 +61,8 @@ export function SplitModal({
             </p>
             {empty ? (
               <p className="text-base-content/70">
-                {preview.data.shares.length === 0
-                  ? "Add characters before running a split."
+                {preview.data.totalShares === 0
+                  ? "Give at least one character a share before running a split."
                   : "There's no available or claimed loot to split."}
               </p>
             ) : (

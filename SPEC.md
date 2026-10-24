@@ -77,7 +77,11 @@ they have claimed from the pool.
 
 * GMs can add zero or more characters to a campaign. Each character has a name
   (required, unique within the campaign regardless of case) and a number of
-  shares (required, a whole number of at least 1, default 1.) Characters
+  shares (required, a whole number from 0 to 100, default 1.) A character
+  with 0 shares sits splits out, e.g. one who has left the party or missed
+  the sessions being split, and can't claim loot. Setting a character's
+  shares to 0 releases their claims back to the pool, after the GM is
+  warned how many will go. Characters
   get a default join code which can be given to players. Once used, the code is
   invalidated. If the player misplaces the code, the GM can create a new one.
   Creating a new code signs out the character's current player at once;
@@ -177,7 +181,9 @@ they have claimed from the pool.
   loot acquired since the last loot split. When a loot split happens:
     * Add the value of all available items plus all claimed items.
     * Allocate this total across all characters, accounting for the number of
-      shares each has.
+      shares each has. A split needs at least one share among the
+      characters. A character with 0 shares takes no part in the split and
+      isn't recorded in it.
     * Subtract the value of each player's claimed items from their share.
     * Report each player's split value. This is how much they earn from the
       sale. It can be negative when their claims are worth more than their

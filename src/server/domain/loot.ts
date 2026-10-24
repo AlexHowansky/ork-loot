@@ -32,6 +32,16 @@ const alreadyGone = () =>
     "Someone else got to that item first. The list has been refreshed.",
   );
 
+/** Refuses a claim for a character who takes no share of splits. */
+export function assertCanClaim(who: Character): void {
+  if (who.shares === 0) {
+    throw badRequest(
+      `${who.name} has no shares, so they can't claim loot.`,
+      { characterId: "Choose a character with at least 1 share." },
+    );
+  }
+}
+
 /**
  * Claims `quantity` of an available loot row for a character. Claiming part
  * of a stack leaves the rest available on the original row and puts the
@@ -44,6 +54,7 @@ export function claimLoot(
   lootId: number,
   quantity: number,
 ): Loot {
+  assertCanClaim(who);
   return db.transaction((tx) => {
     const item = lootInCampaign(tx, lootId, who.campaignId);
     if (item.status !== "available") throw alreadyGone();
@@ -144,6 +155,19 @@ export function releaseLoot(db: Db, who: Character, lootId: number): void {
   });
 }
 
+/** Releases every claim a character holds; returns how many. */
+export function releaseAllClaims(db: Db, who: Character): number {
+  return db.transaction((tx) => {
+    const claims = tx
+      .select({ id: loot.id })
+      .from(loot)
+      .where(and(eq(loot.characterId, who.id), eq(loot.status, "claimed")))
+      .all();
+    for (const c of claims) releaseLoot(tx, who, c.id);
+    return claims.length;
+  });
+}
+
 function splitPlan(db: Db, c: Campaign) {
   const chars = db
     .select()
@@ -151,8 +175,19 @@ function splitPlan(db: Db, c: Campaign) {
     .where(eq(character.campaignId, c.id))
     .all();
   const rows = campaignLoot(db, c.id);
-  const { pool, allocations, leftover } = computePool(rows, chars);
-  return { chars, rows, pool, allocations, leftover };
+  const computed = computePool(rows, chars);
+  // A character with no shares and no claims sits the split out entirely,
+  // so it leaves no trace in the split's history.
+  const taking = computed.allocations
+    .map((a, i) => ({ a, ch: chars[i]! }))
+    .filter(({ a }) => a.shares > 0 || a.claimed > 0);
+  return {
+    chars: taking.map((t) => t.ch),
+    rows,
+    pool: computed.pool,
+    allocations: taking.map((t) => t.a),
+    leftover: computed.leftover,
+  };
 }
 
 /** What a split would pay out right now, without changing anything. */
@@ -185,8 +220,8 @@ export function previewSplit(db: Db, c: Campaign): SplitView {
 export function runSplit(db: Db, c: Campaign): SplitView {
   const id = db.transaction((tx) => {
     const { chars, rows, pool, allocations, leftover } = splitPlan(tx, c);
-    if (chars.length === 0) {
-      throw badRequest("Add at least one character before running a split.");
+    if (pool.totalShares === 0) {
+      throw badRequest("Give at least one character a share before running a split.");
     }
     const sold = rows.filter((r) => r.status === "available" || r.status === "claimed");
     if (sold.length === 0) {
