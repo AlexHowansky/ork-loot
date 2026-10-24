@@ -6,7 +6,7 @@ import { readJson, uuidParam, type Router } from "../lib/http.ts";
 import { sseResponse } from "../lib/events.ts";
 import { logger } from "../lib/logger.ts";
 import { campaignView } from "../domain/campaign.ts";
-import { claimLoot, releaseLoot } from "../domain/loot.ts";
+import { claimLoot, claimNotice, releaseLoot } from "../domain/loot.ts";
 import { claimSchema, releaseSchema } from "../../shared/schemas.ts";
 import type { PlayView } from "../../shared/types.ts";
 
@@ -27,7 +27,7 @@ export function playerRoutes(r: Router) {
     const me = requireOwnedCharacter(ctx, uuidParam(ctx));
     const { lootId, quantity } = await readJson(ctx, claimSchema);
     const row = claimLoot(ctx.db, me, lootId, quantity);
-    ctx.changed(me.campaignId);
+    ctx.changed(me.campaignId, claimNotice("claimed", me, row));
     logger.info("loot claimed", {
       requestId: ctx.requestId,
       characterId: me.id,
@@ -40,8 +40,8 @@ export function playerRoutes(r: Router) {
   r.post("/api/play/:id/release", async (ctx) => {
     const me = requireOwnedCharacter(ctx, uuidParam(ctx));
     const { lootId } = await readJson(ctx, releaseSchema);
-    releaseLoot(ctx.db, me, lootId);
-    ctx.changed(me.campaignId);
+    const row = releaseLoot(ctx.db, me, lootId);
+    ctx.changed(me.campaignId, claimNotice("released", me, row));
     logger.info("claim released", { requestId: ctx.requestId, characterId: me.id, lootId });
     return { ok: true };
   });

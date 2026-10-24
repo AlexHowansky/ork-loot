@@ -18,9 +18,12 @@ The product specification (terms and features) is in @SPEC.md.
   client-side polling. Every handler that changes a campaign calls
   `ctx.changed(campaignId)`; once the request succeeds, the in-process bus
   (`src/server/lib/events.ts`) tells that campaign's streams it changed.
-  Events carry no data, only the origin tab's `X-Client-Id`, and each
-  browser refetches its own view. The bus is in memory, so the server runs
-  as a single process; more than one would need a shared bus.
+  Events carry no campaign data, only the origin tab's `X-Client-Id`, and
+  each browser refetches its own view. A handler may also pass a
+  `LiveNotice` (`ctx.changed(campaignId, notice)`) naming only what every
+  view already shows; other tabs show it as a toast. The bus is in memory,
+  so the server runs as a single process; more than one would need a
+  shared bus.
 
 * Use a SQL abstraction layer for local storage. For now, we'll use SQLite in
   test and prod, but we might switch to another database later. Migrations

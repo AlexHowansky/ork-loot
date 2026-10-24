@@ -6,7 +6,7 @@ import { badRequest, notFound } from "../lib/errors.ts";
 import { idParam, readJson, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { lootView } from "../domain/campaign.ts";
-import { assertCanClaim, claimLoot, releaseLoot } from "../domain/loot.ts";
+import { assertCanClaim, claimLoot, claimNotice, releaseLoot } from "../domain/loot.ts";
 import { ownedSession } from "./session.ts";
 import { gmClaimSchema, lootSchema, lootUpdateSchema } from "../../shared/schemas.ts";
 import { CHARACTER_STATUSES, type LootStatus } from "../../shared/status.ts";
@@ -100,7 +100,7 @@ export function lootRoutes(r: Router) {
     const { characterId, quantity } = await readJson(ctx, gmClaimSchema);
     const who = campaignCharacter(ctx.db, campaignId, characterId);
     const row = claimLoot(ctx.db, who, item.id, quantity, true);
-    ctx.changed(campaignId);
+    ctx.changed(campaignId, claimNotice("claimed", who, row, true));
     logger.info("loot claimed by gm", {
       requestId: ctx.requestId,
       characterId: who.id,
@@ -118,7 +118,7 @@ export function lootRoutes(r: Router) {
     }
     const who = campaignCharacter(ctx.db, campaignId, item.characterId);
     releaseLoot(ctx.db, who, item.id);
-    ctx.changed(campaignId);
+    ctx.changed(campaignId, claimNotice("released", who, item, true));
     logger.info("claim released by gm", {
       requestId: ctx.requestId,
       characterId: who.id,

@@ -1,8 +1,12 @@
 import { SECURITY_HEADERS, type Ctx } from "./http.ts";
 import { logger } from "./logger.ts";
+import type { LiveNotice } from "../../shared/types.ts";
 
-/** Called with the client id of whoever made the change, if known. */
-type Listener = (origin: string | null) => void;
+/**
+ * Called with the client id of whoever made the change, if known, and
+ * anything worth telling the other tabs about it.
+ */
+type Listener = (origin: string | null, notices: LiveNotice[]) => void;
 
 /**
  * Tells open browsers that a campaign changed. It lives in memory, so it
@@ -20,8 +24,8 @@ export function createEventBus() {
         if (set.size === 0) listeners.delete(campaignId);
       };
     },
-    publish(campaignId: string, origin: string | null) {
-      for (const fn of listeners.get(campaignId) ?? []) fn(origin);
+    publish(campaignId: string, origin: string | null, notices: LiveNotice[] = []) {
+      for (const fn of listeners.get(campaignId) ?? []) fn(origin, notices);
     },
     count(campaignId: string): number {
       return listeners.get(campaignId)?.size ?? 0;
@@ -36,8 +40,9 @@ const PING_MS = 25_000;
 
 /**
  * A Server-Sent Events stream that says "changed" whenever the campaign
- * does. It carries no data: each browser refetches its own view, so
- * nothing reaches a player that their normal view wouldn't show.
+ * does. It carries no campaign data: each browser refetches its own view,
+ * so nothing reaches a player that their normal view wouldn't show. The
+ * only extra is a short notice of claims and releases, for a toast.
  */
 export function sseResponse(ctx: Ctx, campaignId: string): Response {
   ctx.keepOpen();
@@ -53,8 +58,8 @@ export function sseResponse(ctx: Ctx, campaignId: string): Response {
           cleanup();
         }
       };
-      const unsubscribe = ctx.events.subscribe(campaignId, (origin) =>
-        send(`event: changed\ndata: ${JSON.stringify({ origin })}\n\n`),
+      const unsubscribe = ctx.events.subscribe(campaignId, (origin, notices) =>
+        send(`event: changed\ndata: ${JSON.stringify({ origin, notices })}\n\n`),
       );
       const ping = setInterval(() => send(": ping\n\n"), PING_MS);
       const onAbort = () => cleanup();

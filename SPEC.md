@@ -123,6 +123,14 @@ they have claimed from the pool.
   within moments when anything in it changes (loot, claims, splits,
   characters, sessions), without reloading the page.
 
+* When anyone claims or releases loot, whether a player for their own
+  character or the GM on a character's behalf, every other browser showing
+  the campaign, the GM's and players' alike, shows a toast saying who
+  claimed or released what, and how many. When the GM does it, the toast
+  says so and names the character it was done for ("The GM claimed Rope on
+  behalf of Grog."). The tab that made the change shows its own
+  confirmation instead.
+
 * The campaign page, for the GM and players alike, shows its contents in tabs
   in this order: "Loot", "Petty cash", "Sessions", "Characters" and
   "Splits". Loot is shown first.

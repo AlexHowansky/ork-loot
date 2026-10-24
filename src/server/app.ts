@@ -19,6 +19,7 @@ import { sessionRoutes } from "./routes/session.ts";
 import { lootRoutes } from "./routes/loot.ts";
 import { playerRoutes } from "./routes/player.ts";
 import { pettyCashRoutes } from "./routes/petty-cash.ts";
+import type { LiveNotice } from "../shared/types.ts";
 
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -85,7 +86,7 @@ export function createApp(config: AppConfig) {
     const started = performance.now();
     const url = new URL(req.url);
     const requestId = crypto.randomUUID().slice(0, 8).toUpperCase();
-    const touched = new Set<string>();
+    const touched = new Map<string, LiveNotice[]>();
     const ctx: Ctx = {
       req,
       url,
@@ -99,7 +100,11 @@ export function createApp(config: AppConfig) {
       events,
       clientId: clientIdOf(req),
       touched,
-      changed: (campaignId) => touched.add(campaignId),
+      changed: (campaignId, notice) => {
+        const notices = touched.get(campaignId) ?? [];
+        if (notice) notices.push(notice);
+        touched.set(campaignId, notices);
+      },
       keepOpen,
     };
     let res: Response;
@@ -123,9 +128,9 @@ export function createApp(config: AppConfig) {
       res = errorResponse(err, requestId);
     }
     if (res.status < 400) {
-      for (const campaignId of touched) {
+      for (const [campaignId, notices] of touched) {
         logger.debug("campaign changed", { requestId, campaignId });
-        events.publish(campaignId, ctx.clientId);
+        events.publish(campaignId, ctx.clientId, notices);
       }
     }
     for (const cookie of ctx.setCookies) res.headers.append("Set-Cookie", cookie);

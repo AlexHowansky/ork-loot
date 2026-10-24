@@ -164,6 +164,19 @@ export interface PlayView extends CampaignView {
   me: { id: string; name: string };
 }
 
+/**
+ * Something a live update says happened, so other tabs can show a toast.
+ * It names only what every view of the campaign already shows.
+ */
+export interface LiveNotice {
+  kind: "claimed" | "released";
+  /** The GM did it on the character's behalf. */
+  byGm: boolean;
+  character: string;
+  item: string;
+  quantity: number;
+}
+
 export interface ApiErrorBody {
   error: string;
   fields?: Record<string, string>;

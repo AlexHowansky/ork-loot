@@ -15,7 +15,7 @@ import {
 import { AppError, badRequest, conflict, notFound } from "../lib/errors.ts";
 import { campaignLoot, computePool, splitHistory } from "./campaign.ts";
 import { listNames } from "../../shared/names.ts";
-import type { SplitView } from "../../shared/types.ts";
+import type { LiveNotice, SplitView } from "../../shared/types.ts";
 
 /** A loot row together with the campaign that owns it, or a 404. */
 export function lootInCampaign(db: Db, lootId: number, campaignId: string) {
@@ -119,15 +119,29 @@ export function claimLoot(
   });
 }
 
+/**
+ * Tells other tabs that a character claimed or released some loot, or
+ * that the GM did on their behalf.
+ */
+export function claimNotice(
+  kind: LiveNotice["kind"],
+  who: Character,
+  item: Loot,
+  byGm = false,
+): LiveNotice {
+  return { kind, byGm, character: who.name, item: item.name, quantity: item.quantity };
+}
+
 const sameOrNull = <T>(col: Parameters<typeof eq>[0], v: T | null): SQL =>
   v === null ? isNull(col) : eq(col, v);
 
 /**
  * Releases a character's claim back to the pool, merging it into an
  * identical available row from the same session when there is one.
+ * Returns the claim as it was before its release.
  */
-export function releaseLoot(db: Db, who: Character, lootId: number): void {
-  db.transaction((tx) => {
+export function releaseLoot(db: Db, who: Character, lootId: number): Loot {
+  return db.transaction((tx) => {
     const item = lootInCampaign(tx, lootId, who.campaignId);
     if (item.status !== "claimed" || item.characterId !== who.id) {
       throw badRequest("You can only release items you've claimed.");
@@ -161,6 +175,7 @@ export function releaseLoot(db: Db, who: Character, lootId: number): void {
         .where(eq(loot.id, item.id))
         .run();
     }
+    return item;
   });
 }
 

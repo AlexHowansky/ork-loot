@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { addGm, Client, makeApp, referenceCalls, setReferenceReply } from "./helpers.ts";
 import { campaign } from "../src/server/db/schema.ts";
-import type { CampaignView, PlayView } from "../src/shared/types.ts";
+import type { CampaignView, LiveNotice, PlayView } from "../src/shared/types.ts";
 
 let ctx: ReturnType<typeof makeApp>;
 let gmA: Client;
@@ -949,20 +949,23 @@ describe("reference search", () => {
 describe("live updates", () => {
   const decoder = new TextDecoder();
 
-  /** Opens an event stream; `next` resolves with the next "changed" origin. */
+  /**
+   * Opens an event stream; `next` resolves with the next "changed" origin,
+   * and `nextEvent` with the whole event.
+   */
   async function openStream(client: Client, path: string) {
     const abort = new AbortController();
     const res = await client.raw("GET", path, { signal: abort.signal });
     const reader = res.body?.getReader();
     let buf = "";
-    async function next(): Promise<string | null> {
+    async function nextEvent(): Promise<{ origin: string | null; notices: LiveNotice[] }> {
       for (;;) {
         const end = buf.indexOf("\n\n");
         if (end >= 0) {
           const block = buf.slice(0, end);
           buf = buf.slice(end + 2);
           if (!block.startsWith("event: changed")) continue;
-          return JSON.parse(block.split("\ndata: ")[1]!).origin;
+          return JSON.parse(block.split("\ndata: ")[1]!);
         }
         const { value, done } = await reader!.read();
         if (done) throw new Error("stream ended");
@@ -973,7 +976,8 @@ describe("live updates", () => {
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("no event")), 1000));
     return {
       res,
-      next: () => Promise.race([next(), timeout()]),
+      next: () => Promise.race([nextEvent().then((e) => e.origin), timeout()]),
+      nextEvent: () => Promise.race([nextEvent(), timeout()]),
       close: () => abort.abort(),
     };
   }
@@ -999,6 +1003,36 @@ describe("live updates", () => {
     });
     expect(await stream.next()).toBe("tab-1");
     stream.close();
+  });
+
+  test("claims and releases carry a notice for other tabs", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    const potion = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Potion", quantity: 3 })).body;
+    const first = (await view()).characters[0]!;
+    const { player, res } = await join(first.joinCode!);
+    const playerStream = await openStream(player, `/api/play/${res.body.characterId}/events`);
+    const gmStream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    const claimed = await player.post(`/api/play/${res.body.characterId}/claim`, {
+      lootId: potion.id,
+      quantity: 2,
+    });
+    const claimNotice: LiveNotice = {
+      kind: "claimed",
+      byGm: false,
+      character: first.name,
+      item: "Potion",
+      quantity: 2,
+    };
+    expect((await gmStream.nextEvent()).notices).toEqual([claimNotice]);
+    expect((await playerStream.nextEvent()).notices).toEqual([claimNotice]);
+    await gmA.post(`/api/loot/${claimed.body.id}/release`);
+    expect((await playerStream.nextEvent()).notices).toEqual([
+      { ...claimNotice, kind: "released", byGm: true },
+    ]);
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Rope" });
+    expect((await playerStream.nextEvent()).notices).toEqual([]);
+    gmStream.close();
+    playerStream.close();
   });
 
   test("a player's stream hears the GM's edits", async () => {

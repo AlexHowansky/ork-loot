@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Db } from "../db/client.ts";
 import { AppError, badRequest } from "./errors.ts";
 import type { EventBus } from "./events.ts";
+import type { LiveNotice } from "../../shared/types.ts";
 
 export interface AppConfig {
   db: Db;
@@ -26,9 +27,12 @@ export interface Ctx {
   events: EventBus;
   /** The browser tab that sent this request, from `X-Client-Id`. */
   clientId: string | null;
-  /** Campaigns this request changed; announced if it succeeds. */
-  touched: Set<string>;
-  changed(campaignId: string): void;
+  /**
+   * Campaigns this request changed, with any notices for other tabs;
+   * announced if it succeeds.
+   */
+  touched: Map<string, LiveNotice[]>;
+  changed(campaignId: string, notice?: LiveNotice): void;
   /** Lifts the server's idle timeout, for long-lived streams. */
   keepOpen(): void;
 }
