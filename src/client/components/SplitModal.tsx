@@ -27,7 +27,10 @@ export function SplitModal({
     gcTime: 0,
   });
   const s = useSubmit();
-  const empty = preview.data && (preview.data.total === 0 || preview.data.totalShares === 0);
+  // The total can be nothing when the loot all goes to topping up petty
+  // cash, so emptiness is judged by the loot alone.
+  const empty =
+    preview.data && (preview.data.total - preview.data.pettyCash === 0 || preview.data.totalShares === 0);
   const owing = preview.data?.shares.filter((sh) => sh.net < 0) ?? [];
   // Without debt allowed, nobody may end a split owing.
   const blocked = !campaign.allowDebt && owing.length > 0;
@@ -69,7 +72,14 @@ export function SplitModal({
               {preview.data.pettyCash > 0 && (
                 <>
                   , and <Money amount={preview.data.pettyCash} campaign={campaign} className="font-semibold" /> of
-                  petty cash is paid out with it
+                  petty cash {campaign.pettyCashHold > 0 ? "above its hold " : ""}is paid out with it
+                </>
+              )}
+              {preview.data.pettyCash < 0 && (
+                <>
+                  , of which <Money amount={-preview.data.pettyCash} campaign={campaign} className="font-semibold" />{" "}
+                  is kept back to top petty cash up to its hold of{" "}
+                  <Money amount={campaign.pettyCashHold} campaign={campaign} className="font-semibold" />
                 </>
               )}
               . Available
@@ -87,7 +97,7 @@ export function SplitModal({
                 {preview.data.leftover > 0 && (
                   <p className="mt-2 text-sm text-base-content/70">
                     <Money amount={preview.data.leftover} campaign={campaign} className="font-semibold" /> doesn't
-                    divide evenly across the shares and will be kept as petty cash for the next split.
+                    divide evenly across the shares and will be added to petty cash.
                   </p>
                 )}
                 {owing.length > 0 &&

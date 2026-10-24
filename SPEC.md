@@ -26,10 +26,12 @@ names, start dates, optional background images, and zero or more characters.
 
 ### Petty Cash
 
-A per-campaign amount, in the campaign's currency, that holds what was left
-over when the last split couldn't be divided evenly. The next split pays it
-out along with the loot, so it never builds up past one unit per share. It
-isn't edited by hand. The GM and players see it next to the party fund.
+A per-campaign amount, in the campaign's currency, set aside for shared
+costs such as tavern stays and healing potions. Splits keep it at the
+campaign's petty cash hold and add to it what they can't divide evenly; the
+GM records money paid in or out of it by hand. Every change is an entry in
+the petty cash ledger, so the ledger always adds up to the balance. The GM
+and players see it next to the party fund.
 
 ### Debt
 
@@ -66,7 +68,7 @@ they have claimed from the pool.
 
 * Each campaign sets its currency: a label (e.g. "gp") and 0 to 3 decimal
   places. The decimal places are locked once the campaign has any loot or
-  any petty cash.
+  any petty cash ledger entries.
 
 * The campaign form has a game system selector, a shortcut that fills in the
   currency label, decimal places and base reference URL; the choice itself
@@ -80,6 +82,10 @@ they have claimed from the pool.
   the split preview says who and why. When it's on, a negative payout
   becomes that character's debt. Debt can't be turned off while any
   character owes.
+
+* Each campaign has a petty cash hold, a whole number (0 or more, 0 by
+  default) of its currency, set in the campaign form. It is what each split
+  keeps in petty cash (see the loot split below).
 
 * Each campaign may set a base reference URL (an http or https address, e.g.
   a rules reference site). The loot form searches it for items (see below).
@@ -118,8 +124,20 @@ they have claimed from the pool.
   characters, sessions), without reloading the page.
 
 * The campaign page, for the GM and players alike, shows its contents in tabs
-  in this order: "Loot", "Sessions", "Characters" and "Splits". Loot is shown
-  first.
+  in this order: "Loot", "Petty cash", "Sessions", "Characters" and
+  "Splits". Loot is shown first.
+
+* The "Petty cash" tab is the petty cash ledger, newest first, showing each
+  entry's date, description, amount (negative when paid out) and the balance
+  after it. The GM can add, edit and delete entries, each with a date
+  (default today), a description and a non-zero amount: positive for money
+  paid in (e.g. job earnings), negative for money paid out (e.g. buying
+  goods or services). An entry that would take petty cash below zero, as
+  added, edited or deleted, is refused. Each split that changes petty cash
+  adds a "Loot split" entry of its own, showing what was kept back for the
+  hold, paid out above it, or left over; it can't be edited or deleted, and
+  goes when the split is undone. Players see the ledger but can't change
+  it.
 
 * The GM can view, create, edit, and delete sessions in their campaigns.
 
@@ -218,8 +236,10 @@ they have claimed from the pool.
 
 * The GM can, at any time, perform a loot split. This represents selling off
   loot acquired since the last loot split. When a loot split happens:
-    * Add the value of all available items plus all claimed items, plus
-      the petty cash.
+    * Add the value of all available items plus all claimed items.
+    * Bring petty cash to the hold: if it holds less, take the difference
+      from that total first (as far as the total reaches); if it holds
+      more, add the excess to the total.
     * Allocate this total across all characters, accounting for the number of
       shares each has. A split needs at least one share among the
       characters. A character with 0 shares takes no part in the split and
@@ -236,14 +256,15 @@ they have claimed from the pool.
   that goes into the total. Every share is worth exactly the same: the total
   divided by the number of shares, rounded down to a whole minor unit. A
   character's share is that amount times their shares, before claims are
-  subtracted. Whatever doesn't divide evenly becomes the new Petty Cash, but
-  only when the split is run; the split preview shows how much petty cash
-  is paid out and how much will be kept, and the split history shows what
-  each split divided and kept.
+  subtracted. Whatever doesn't divide evenly is added to petty cash, even
+  when the hold is 0, but only when the split is run; the split preview
+  shows how much petty cash is kept back or paid out and how much will be
+  left over, and the split history shows what each split divided, kept
+  back and left over.
 
 * The board's pool to split and per-share figures, and each character's
-  projected payout, include the petty cash. Projected payouts also take off
-  each character's debt.
+  projected payout, include petty cash above the hold and leave out any
+  top-up below it. Projected payouts also take off each character's debt.
 
 * Debt repaid in a split is only held back from the debtor's payout; it
   isn't divided among the others, who were paid their full share in the
@@ -258,7 +279,10 @@ they have claimed from the pool.
 * The GM can undo the most recent split, from a button in its entry in the
   split history, after confirming. Undoing it turns its bought items back
   into claims for the same characters and its sold items back to available,
-  puts petty cash and each character's debt back to what they were before
-  the split, and removes the split from the history. Older splits can then
+  reverses the split's change to petty cash (removing its ledger entry, but
+  keeping entries made since), puts each character's debt back to what it
+  was before the split, and removes the split from the history. It is
+  refused when petty cash has since been spent too low to reverse that
+  change. Older splits can then
   be undone in turn. A bought item whose character now has 0 shares goes
   back to available instead, since that character can't hold a claim.

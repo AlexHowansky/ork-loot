@@ -43,3 +43,29 @@ export function allocate(
     }),
   };
 }
+
+export interface PettyCashFlow {
+  /**
+   * What petty cash adds to the split: what it holds above the hold, or,
+   * when negative, what the loot gives up to top it up to the hold.
+   */
+  pettyCashIn: number;
+  /** The loot plus `pettyCashIn`, for the shares to divide. */
+  total: number;
+}
+
+/**
+ * How petty cash takes part in a split. It is first brought to `hold`:
+ * anything above it joins the loot, and any shortfall comes out of the
+ * loot, as far as the loot reaches. The leftover from dividing `total`
+ * then goes back into petty cash on top of that.
+ */
+export function pettyCashFlow(
+  sellable: number,
+  pettyCash: number,
+  hold: number,
+): PettyCashFlow {
+  const kept = Math.min(hold, sellable + pettyCash);
+  const pettyCashIn = pettyCash - kept;
+  return { pettyCashIn, total: sellable + pettyCashIn };
+}

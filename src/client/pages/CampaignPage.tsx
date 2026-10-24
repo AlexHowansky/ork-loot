@@ -110,7 +110,7 @@ export function CampaignPage() {
       {editing && (
         <CampaignForm
           campaign={campaign}
-          decimalsLocked={view.loot.length > 0}
+          decimalsLocked={view.loot.length > 0 || view.pettyCash.length > 0 || campaign.pettyCash !== 0}
           debtLocked={view.characters.some((c) => c.debt > 0)}
           onClose={() => setEditing(false)}
           onSaved={() => {
@@ -125,7 +125,13 @@ export function CampaignPage() {
           onClose={() => setSplitting(false)}
           onDone={(split) => {
             const money = (n: number) => formatMoney(n, campaign.currencyDecimals, campaign.currencyLabel);
-            const petty = split.leftover > 0 ? `, ${money(split.leftover)} kept as petty cash` : "";
+            const change = split.leftover - split.pettyCash;
+            const petty =
+              change > 0
+                ? `, ${money(change)} added to petty cash`
+                : change < 0
+                  ? `, ${money(-change)} paid out of petty cash`
+                  : "";
             toast(`Split done: ${money(split.total - split.leftover)} shared out${petty}.`);
             refresh();
           }}

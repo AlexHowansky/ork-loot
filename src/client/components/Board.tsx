@@ -5,11 +5,13 @@ import { LootTable, type StatusFilter } from "./LootTable.tsx";
 import { CharacterTable } from "./CharacterTable.tsx";
 import { SessionTable } from "./SessionTable.tsx";
 import { SplitHistory } from "./SplitHistory.tsx";
+import { PettyCashLedger } from "./PettyCashLedger.tsx";
+import { formatMoney } from "../../shared/money.ts";
 import { Icon, faCalendarDays } from "./Icon.tsx";
 
 export type Mode = { kind: "gm" } | { kind: "player"; characterId: string };
 
-type Tab = "loot" | "sessions" | "splits" | "characters";
+type Tab = "loot" | "sessions" | "splits" | "characters" | "pettyCash";
 
 /** The campaign's header, totals and tabs, for both GMs and players. */
 export function CampaignBoard({
@@ -28,11 +30,13 @@ export function CampaignBoard({
   const [search, setSearch] = useState("");
   const { campaign, pool } = view;
   const me = mode.kind === "player" ? view.characters.find((c) => c.id === mode.characterId) : undefined;
-  const toSplit = pool.sellable + campaign.pettyCash;
+  // Petty cash above its hold joins the split; a shortfall is kept back.
+  const toSplit = pool.sellable + pool.pettyCashIn;
   const perShare = pool.totalShares ? Math.floor(toSplit / pool.totalShares) : 0;
 
   const tabs: [Tab, string, number?][] = [
     ["loot", "Loot", view.loot.length],
+    ["pettyCash", "Petty cash", view.pettyCash.length],
     ["sessions", "Sessions", view.sessions.length],
     ["characters", "Characters", view.characters.length],
     ["splits", "Splits", view.splits.length],
@@ -62,7 +66,13 @@ export function CampaignBoard({
         <Stat
           title="Pool to split"
           value={<Money amount={toSplit} campaign={campaign} />}
-          desc={campaign.pettyCash ? "Available and claimed, plus petty cash" : "Available and claimed"}
+          desc={
+            pool.pettyCashIn > 0
+              ? "Available and claimed, plus spare petty cash"
+              : pool.pettyCashIn < 0
+                ? "Available and claimed, less the petty cash top-up"
+                : "Available and claimed"
+          }
         />
         <Stat
           title="Per share"
@@ -71,7 +81,15 @@ export function CampaignBoard({
         />
         <Stat title="Claimed" value={<Money amount={pool.claimed} campaign={campaign} />} desc="Deducted from claimants" />
         <Stat title="Party fund" value={<Money amount={pool.party} campaign={campaign} />} desc="Kept, not sold" />
-        <Stat title="Petty cash" value={<Money amount={campaign.pettyCash} campaign={campaign} />} desc="Paid out in the next split" />
+        <Stat
+          title="Petty cash"
+          value={<Money amount={campaign.pettyCash} campaign={campaign} />}
+          desc={
+            campaign.pettyCashHold > 0
+              ? `Holding ${formatMoney(campaign.pettyCashHold, campaign.currencyDecimals, campaign.currencyLabel)} for shared costs`
+              : "Paid out in the next split"
+          }
+        />
         {me && (
           <Stat
             title="Your payout now"
@@ -140,6 +158,7 @@ export function CampaignBoard({
             />
           )}
           {tab === "splits" && <SplitHistory view={view} mode={mode} />}
+          {tab === "pettyCash" && <PettyCashLedger view={view} mode={mode} />}
         </div>
       </div>
     </div>

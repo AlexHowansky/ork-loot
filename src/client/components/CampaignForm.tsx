@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import { api } from "../api.ts";
 import { GAME_SYSTEMS, matchGameSystem } from "../../shared/game-systems.ts";
-import { MAX_DECIMALS } from "../../shared/money.ts";
+import { MAX_DECIMALS, parseAmount } from "../../shared/money.ts";
 import type { CampaignInfo } from "../../shared/types.ts";
 import { Field, FormError, withError } from "./Field.tsx";
 import { Modal } from "./Modal.tsx";
@@ -19,7 +19,7 @@ export function CampaignForm({
   onSaved,
 }: {
   campaign?: CampaignInfo;
-  /** Decimal places can't change once loot exists. */
+  /** Decimal places can't change once loot or petty cash exists. */
   decimalsLocked?: boolean;
   /** Debt can't be turned off while characters still owe. */
   debtLocked?: boolean;
@@ -32,6 +32,10 @@ export function CampaignForm({
   const [currencyDecimals, setDecimals] = useState(campaign?.currencyDecimals ?? 2);
   const [baseReferenceUrl, setReferenceUrl] = useState(campaign?.baseReferenceUrl ?? "");
   const [allowDebt, setAllowDebt] = useState(campaign?.allowDebt ?? false);
+  // The hold is a whole number of the currency, stored in minor units.
+  const [hold, setHold] = useState(
+    String((campaign?.pettyCashHold ?? 0) / 10 ** (campaign?.currencyDecimals ?? 2)),
+  );
   const [image, setImage] = useState<File | null>(null);
   const allowDebtId = useId();
   const debtLockedNow = debtLocked && allowDebt;
@@ -47,9 +51,21 @@ export function CampaignForm({
     setReferenceUrl(g.baseReferenceUrl);
   };
 
+  const parsedHold = parseAmount(hold, 0);
+  const holdError = parsedHold === undefined ? "Enter a whole number." : s.fields.pettyCashHold;
+
   const submit = () =>
     s.run(async () => {
-      const body = { name, startDate, currencyLabel, currencyDecimals, baseReferenceUrl, allowDebt };
+      if (parsedHold === undefined) return;
+      const body = {
+        name,
+        startDate,
+        currencyLabel,
+        currencyDecimals,
+        baseReferenceUrl,
+        allowDebt,
+        pettyCashHold: (parsedHold ?? 0) * 10 ** currencyDecimals,
+      };
       const saved = campaign
         ? await api.patch<CampaignInfo>(`/api/campaigns/${campaign.id}`, body)
         : await api.post<CampaignInfo>("/api/campaigns", body);
@@ -95,7 +111,7 @@ export function CampaignForm({
           label="Game system"
           hint={
             decimalsLocked
-              ? "Fills in the fields below. Systems with other decimal places are unavailable once loot is recorded."
+              ? "Fills in the fields below. Systems with other decimal places are unavailable once loot or petty cash is recorded."
               : "Fills in the fields below."
           }
         >
@@ -128,7 +144,7 @@ export function CampaignForm({
           <Field
             label="Decimal places"
             error={s.fields.currencyDecimals}
-            hint={decimalsLocked ? "Locked once loot is recorded." : undefined}
+            hint={decimalsLocked ? "Locked once loot or petty cash is recorded." : undefined}
           >
             <select
               className={withError("select w-32", s.fields.currencyDecimals)}
@@ -155,6 +171,20 @@ export function CampaignForm({
             placeholder="https://"
             value={baseReferenceUrl}
             onChange={(e) => setReferenceUrl(e.target.value)}
+          />
+        </Field>
+        <Field
+          label={`Petty cash hold (${currencyLabel || "value"})`}
+          error={holdError}
+          hint="Each split tops petty cash up to this from the loot, or pays out anything above it, to keep money aside for shared costs like inns and potions."
+        >
+          <input
+            type="number"
+            min={0}
+            step={1}
+            className={withError("input w-32", holdError)}
+            value={hold}
+            onChange={(e) => setHold(e.target.value)}
           />
         </Field>
         <div className="fieldset py-1">

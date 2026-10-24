@@ -354,7 +354,7 @@ describe("loot split", () => {
     const ring = (await add({ name: "Ring", value: 800, status: "claimed", characterId: characterIds[0] })).body;
 
     const before = await view();
-    expect(before.pool).toEqual({ sellable: 2000, party: 400, claimed: 400, totalShares: 4 });
+    expect(before.pool).toEqual({ sellable: 2000, party: 400, claimed: 400, totalShares: 4, pettyCashIn: 0 });
 
     const preview = (await gmA.get(`/api/campaigns/${campaignId}/split/preview`)).body;
     expect(preview.total).toBe(2000);
@@ -695,6 +695,136 @@ describe("loot split", () => {
     const res = await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Ring", status: "claimed" });
     expect(res.status).toBe(400);
     expect(res.body.fields.characterId).toBeDefined();
+  });
+});
+
+describe("petty cash", () => {
+  test("a split tops petty cash up to its hold, and pays out anything above it", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    const setHold = (pettyCashHold: number) =>
+      gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, pettyCashHold });
+    expect((await view()).campaign.pettyCashHold).toBe(0);
+    expect((await setHold(-100)).body.fields.pettyCashHold).toBeDefined();
+    // A whole number of gp only: 1.50 gp is refused.
+    const part = await setHold(150);
+    expect(part.status).toBe(400);
+    expect(part.body.fields.pettyCashHold).toBe("Petty cash hold must be a whole number.");
+    expect((await setHold(100)).body.pettyCashHold).toBe(100);
+
+    // 1003 of loot gives up 100 to the hold; 903 over 4 shares is 225, 3 over.
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Statue", value: 2006 });
+    expect((await view()).pool.pettyCashIn).toBe(-100);
+    const preview = (await gmA.get(`/api/campaigns/${campaignId}/split/preview`)).body;
+    expect(preview).toMatchObject({ total: 903, pettyCash: -100, leftover: 3 });
+    const first = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    let now = await view();
+    expect(now.campaign.pettyCash).toBe(103);
+    expect(now.pettyCash).toMatchObject([{ amount: 103, splitId: first.id, description: "Loot split" }]);
+
+    // With the hold dropped to 0, all 103 is paid out: 1103 is 275 a share
+    // and 3 over, leaving 3.
+    await setHold(0);
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Vase", value: 2000 });
+    now = await view();
+    expect(now.pool.pettyCashIn).toBe(103);
+    expect(now.characters.map((c) => c.gross).sort()).toEqual([275, 275, 550]);
+    await gmA.post(`/api/campaigns/${campaignId}/split`);
+    now = await view();
+    expect(now.campaign.pettyCash).toBe(3);
+    expect(now.pettyCash.map((e) => e.amount)).toEqual([-100, 103]);
+    expect(now.splits.map((s) => [s.total, s.pettyCash, s.leftover])).toEqual([
+      [1103, 103, 3],
+      [903, -100, 3],
+    ]);
+  });
+
+  test("a hold larger than the loot takes all of it", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, pettyCashHold: 5000 });
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gem", value: 200 });
+    const split = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    expect(split).toMatchObject({ total: 0, pettyCash: -100, leftover: 0 });
+    expect(split.shares.every((sh: any) => sh.net === 0)).toBe(true);
+    expect((await view()).campaign.pettyCash).toBe(100);
+  });
+
+  test("the GM records adjustments, which can't overdraw petty cash", async () => {
+    const { campaignId, characterIds, view } = await seed();
+    const entries = `/api/campaigns/${campaignId}/petty-cash`;
+    const entry = (amount: number, description = "Job pay") =>
+      gmA.post(entries, { date: "2026-02-01", description, amount });
+
+    const paidIn = (await entry(500)).body;
+    expect((await view()).campaign.pettyCash).toBe(500);
+    const over = await entry(-700, "Inn");
+    expect(over.status).toBe(400);
+    expect(over.body.error).toContain("only holds 5.00 gp");
+    expect(over.body.fields.amount).toBeDefined();
+    const inn = (await entry(-200, "Inn")).body;
+    expect((await view()).campaign.pettyCash).toBe(300);
+
+    expect((await entry(0)).body.fields.amount).toBeDefined();
+    expect((await gmA.post(entries, { date: "2026-02-01", description: "", amount: 1 })).body.fields.description).toBeDefined();
+
+    // Editing moves the balance by the difference.
+    expect((await gmA.patch(`/api/petty-cash/${paidIn.id}`, { date: "2026-02-01", description: "Job pay", amount: 100 })).status).toBe(400);
+    expect((await gmA.patch(`/api/petty-cash/${paidIn.id}`, { date: "2026-02-02", description: "Bounty", amount: 300 })).status).toBe(200);
+    let now = await view();
+    expect(now.campaign.pettyCash).toBe(100);
+    expect(now.pettyCash.map((e) => [e.date, e.description, e.amount])).toEqual([
+      ["2026-02-02", "Bounty", 300],
+      ["2026-02-01", "Inn", -200],
+    ]);
+    expect((await gmA.del(`/api/petty-cash/${paidIn.id}`)).status).toBe(400);
+    expect((await gmA.del(`/api/petty-cash/${inn.id}`)).status).toBe(200);
+    expect((await view()).campaign.pettyCash).toBe(300);
+
+    // Players see the ledger but can't change it; nor can another GM.
+    const code = (await view()).characters.find((c) => c.id === characterIds[0])!.joinCode!;
+    const { player } = await join(code);
+    const play = (await player.get<PlayView>(`/api/play/${characterIds[0]}`)).body;
+    expect(play.pettyCash.map((e) => e.amount)).toEqual([300]);
+    expect((await player.post(entries, { date: "2026-02-01", description: "x", amount: 1 })).status).toBe(401);
+    const gmB = new Client(ctx.app);
+    await gmB.login("bob");
+    expect((await gmB.post(entries, { date: "2026-02-01", description: "x", amount: 1 })).status).toBe(404);
+    expect((await gmB.del(`/api/petty-cash/${paidIn.id}`)).status).toBe(404);
+    now = await view();
+    expect(now.campaign.pettyCash).toBe(300);
+  });
+
+  test("a split's entry can only be removed by undoing the split", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, pettyCashHold: 100 });
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Statue", value: 2006 });
+    const split = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    const [splitEntry] = (await view()).pettyCash;
+    const body = { date: "2026-02-01", description: "x", amount: 1 };
+    expect((await gmA.patch(`/api/petty-cash/${splitEntry!.id}`, body)).status).toBe(400);
+    expect((await gmA.del(`/api/petty-cash/${splitEntry!.id}`)).status).toBe(400);
+
+    // Spending what the split put in blocks undoing it until it's paid back.
+    const entries = `/api/campaigns/${campaignId}/petty-cash`;
+    await gmA.post(entries, { date: "2026-02-01", description: "Potions", amount: -103 });
+    const undo = () => gmA.del(`/api/campaigns/${campaignId}/splits/${split.id}`);
+    const refused = await undo();
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toContain("can't be undone");
+    await gmA.post(entries, { date: "2026-02-02", description: "Refund", amount: 103 });
+    expect((await undo()).status).toBe(200);
+    const now = await view();
+    expect(now.campaign.pettyCash).toBe(0);
+    expect(now.pettyCash.map((e) => e.description)).toEqual(["Refund", "Potions"]);
+  });
+
+  test("decimals lock once petty cash has been recorded", async () => {
+    const { campaignId } = await seed();
+    const entries = `/api/campaigns/${campaignId}/petty-cash`;
+    await gmA.post(entries, { date: "2026-02-01", description: "In", amount: 5 });
+    await gmA.post(entries, { date: "2026-02-01", description: "Out", amount: -5 });
+    const res = await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, currencyDecimals: 0 });
+    expect(res.status).toBe(400);
+    expect(res.body.fields.currencyDecimals).toBeDefined();
   });
 });
 

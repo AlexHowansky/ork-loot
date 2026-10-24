@@ -56,20 +56,31 @@ export const joinSchema = z.object({
     .pipe(z.string().min(1, { error: "Enter your join code." })),
 });
 
-export const campaignSchema = z.object({
-  name: name("Name"),
-  startDate: isoDate,
-  currencyLabel: z
-    .string()
-    .trim()
-    .max(10, { error: "Keep the currency label to 10 characters." }),
-  currencyDecimals: z
-    .int({ error: "Decimals must be a whole number." })
-    .min(0)
-    .max(MAX_DECIMALS, { error: `Decimals must be 0 to ${MAX_DECIMALS}.` }),
-  baseReferenceUrl: optionalLink,
-  allowDebt: z.boolean().default(false),
-});
+export const campaignSchema = z
+  .object({
+    name: name("Name"),
+    startDate: isoDate,
+    currencyLabel: z
+      .string()
+      .trim()
+      .max(10, { error: "Keep the currency label to 10 characters." }),
+    currencyDecimals: z
+      .int({ error: "Decimals must be a whole number." })
+      .min(0)
+      .max(MAX_DECIMALS, { error: `Decimals must be 0 to ${MAX_DECIMALS}.` }),
+    baseReferenceUrl: optionalLink,
+    allowDebt: z.boolean().default(false),
+    /** In minor units, but always a whole number of the currency. */
+    pettyCashHold: z
+      .int({ error: "Petty cash hold isn't a valid amount." })
+      .min(0, { error: "Petty cash hold can't be negative." })
+      .max(Number.MAX_SAFE_INTEGER, { error: "That petty cash hold is too large." })
+      .default(0),
+  })
+  .refine((c) => c.pettyCashHold % 10 ** c.currencyDecimals === 0, {
+    path: ["pettyCashHold"],
+    error: "Petty cash hold must be a whole number.",
+  });
 
 export const characterSchema = z.object({
   name: name("Name"),
@@ -131,7 +142,19 @@ export const gmClaimSchema = claimSchema.omit({ lootId: true }).extend({
   characterId: z.uuid({ error: "Choose a character." }),
 });
 
+/** A hand-written petty cash adjustment: paid in, or out when negative. */
+export const pettyCashEntrySchema = z.object({
+  date: isoDate,
+  description: name("Description", 200),
+  amount: z
+    .int({ error: "Amount isn't a valid amount." })
+    .min(-Number.MAX_SAFE_INTEGER, { error: "That amount is too large." })
+    .max(Number.MAX_SAFE_INTEGER, { error: "That amount is too large." })
+    .refine((n) => n !== 0, { error: "Amount can't be zero." }),
+});
+
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type CharacterInput = z.infer<typeof characterSchema>;
 export type SessionInput = z.infer<typeof sessionSchema>;
 export type LootInput = z.infer<typeof lootSchema>;
+export type PettyCashEntryInput = z.infer<typeof pettyCashEntrySchema>;

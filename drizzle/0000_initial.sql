@@ -8,6 +8,7 @@ CREATE TABLE `campaign` (
 	`currency_decimals` integer DEFAULT 2 NOT NULL,
 	`base_reference_url` text,
 	`petty_cash` integer DEFAULT 0 NOT NULL,
+	`petty_cash_hold` integer DEFAULT 0 NOT NULL,
 	`allow_debt` integer DEFAULT false NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
@@ -69,6 +70,19 @@ CREATE TABLE `loot` (
 --> statement-breakpoint
 CREATE INDEX `loot_session_idx` ON `loot` (`session_id`);--> statement-breakpoint
 CREATE INDEX `loot_character_idx` ON `loot` (`character_id`);--> statement-breakpoint
+CREATE TABLE `petty_cash_entry` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`campaign_id` text NOT NULL,
+	`date` text NOT NULL,
+	`description` text NOT NULL,
+	`amount` integer NOT NULL,
+	`split_id` integer,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`campaign_id`) REFERENCES `campaign`(`id`) ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY (`split_id`) REFERENCES `split`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `petty_cash_entry_campaign_idx` ON `petty_cash_entry` (`campaign_id`);--> statement-breakpoint
 CREATE TABLE `player` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`token_hash` text NOT NULL,

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "086896e8-3557-41b2-9e01-5f9c89f35eea",
+  "id": "6f9fe683-40b3-4708-8e59-b827db3fa796",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -67,6 +67,14 @@
         },
         "petty_cash": {
           "name": "petty_cash",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "petty_cash_hold": {
+          "name": "petty_cash_hold",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -500,6 +508,100 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "petty_cash_entry": {
+      "name": "petty_cash_entry",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "campaign_id": {
+          "name": "campaign_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "date": {
+          "name": "date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "split_id": {
+          "name": "split_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "petty_cash_entry_campaign_idx": {
+          "name": "petty_cash_entry_campaign_idx",
+          "columns": [
+            "campaign_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "petty_cash_entry_campaign_id_campaign_id_fk": {
+          "name": "petty_cash_entry_campaign_id_campaign_id_fk",
+          "tableFrom": "petty_cash_entry",
+          "tableTo": "campaign",
+          "columnsFrom": [
+            "campaign_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "petty_cash_entry_split_id_split_id_fk": {
+          "name": "petty_cash_entry_split_id_split_id_fk",
+          "tableFrom": "petty_cash_entry",
+          "tableTo": "split",
+          "columnsFrom": [
+            "split_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },

@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { api } from "../api.ts";
-import type { CharacterView, LootView, SessionView, CampaignInfo } from "../../shared/types.ts";
-import { formatMoney, subtotal } from "../../shared/money.ts";
+import type {
+  CharacterView,
+  LootView,
+  SessionView,
+  CampaignInfo,
+  PettyCashEntryView,
+} from "../../shared/types.ts";
+import { formatMoney, parseSignedAmount, subtotal, toInput } from "../../shared/money.ts";
 import { Field, FormError, withError } from "./Field.tsx";
 import { Modal } from "./Modal.tsx";
 import { CancelButton, SubmitButton } from "./SubmitButton.tsx";
@@ -140,7 +146,82 @@ export function SessionForm({
   );
 }
 
-/** Asks a player how many of a stack to claim. */
+/** Adds or edits a hand-written petty cash entry. */
+export function PettyCashForm({
+  campaign,
+  entry,
+  onClose,
+  onSaved,
+}: {
+  campaign: CampaignInfo;
+  entry?: PettyCashEntryView;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const decimals = campaign.currencyDecimals;
+  const [date, setDate] = useState(entry?.date ?? today());
+  const [description, setDescription] = useState(entry?.description ?? "");
+  const [amount, setAmount] = useState(toInput(entry?.amount ?? null, decimals));
+  const s = useSubmit();
+  const parsed = parseSignedAmount(amount, decimals);
+  const amountError =
+    parsed === undefined
+      ? decimals === 0
+        ? "Enter a whole number."
+        : `Enter an amount with up to ${decimals} decimal places.`
+      : s.fields.amount;
+  const submit = () =>
+    s.run(async () => {
+      if (parsed === undefined) return;
+      const body = { date, description, amount: parsed ?? 0 };
+      if (entry) await api.patch(`/api/petty-cash/${entry.id}`, body);
+      else await api.post(`/api/campaigns/${campaign.id}/petty-cash`, body);
+      onSaved();
+      onClose();
+    });
+  return (
+    <Modal
+      title={entry ? "Edit petty cash entry" : "Add petty cash entry"}
+      onClose={onClose}
+      onSubmit={submit}
+      actions={
+        <>
+          <CancelButton onClick={onClose} />
+          <SubmitButton busy={s.busy}>{entry ? "Save entry" : "Add entry"}</SubmitButton>
+        </>
+      }
+    >
+      <div className="w-80 max-w-full">
+        <FormError message={s.hasFieldErrors ? null : s.message} />
+        <Field label="Date" error={s.fields.date}>
+          <input type="date" className={withError("input w-full", s.fields.date)} value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <Field label="Description" error={s.fields.description}>
+          <input
+            className={withError("input w-full", s.fields.description)}
+            placeholder="e.g. Two nights at the Rusty Dragon"
+            data-autofocus
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+        </Field>
+        <Field
+          label={`Amount (${campaign.currencyLabel || "value"})`}
+          error={amountError}
+          hint="Positive for money paid in; put a minus sign in front for money paid out."
+        >
+          <input
+            inputMode="decimal"
+            className={withError("input w-32", amountError)}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
 /**
  * Asks how many of a stack to claim. A player claims for their own
  * character; the GM passes `characters` and picks who the claim is for.

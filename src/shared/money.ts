@@ -61,3 +61,14 @@ export function parseAmount(
     Number(whole) * 10 ** decimals + Number(frac.padEnd(decimals, "0") || 0);
   return Number.isSafeInteger(minor) ? minor : undefined;
 }
+
+/** Like `parseAmount`, but a leading minus sign makes it negative. */
+export function parseSignedAmount(
+  text: string,
+  decimals: number,
+): number | null | undefined {
+  const match = /^\s*([−-])?(.*)$/s.exec(text)!;
+  const minor = parseAmount(match[2] ?? "", decimals);
+  if (!match[1]) return minor;
+  return minor === null || minor === undefined ? undefined : -minor;
+}

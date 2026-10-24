@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { allocate } from "../src/server/domain/split.ts";
-import { formatAmount, parseAmount, subtotal } from "../src/shared/money.ts";
+import { allocate, pettyCashFlow } from "../src/server/domain/split.ts";
+import { formatAmount, parseAmount, parseSignedAmount, subtotal } from "../src/shared/money.ts";
 
 describe("subtotal", () => {
   test("multiplies quantity, value and market percentage", () => {
@@ -93,5 +93,34 @@ describe("allocate", () => {
 
   test("handles no shares", () => {
     expect(allocate(100, [])).toEqual({ perShare: 0, leftover: 100, rows: [] });
+  });
+});
+
+describe("petty cash flow", () => {
+  test("with no hold, all petty cash joins the split", () => {
+    expect(pettyCashFlow(1000, 3, 0)).toEqual({ pettyCashIn: 3, total: 1003 });
+  });
+
+  test("a shortfall below the hold comes out of the loot", () => {
+    expect(pettyCashFlow(1000, 20, 50)).toEqual({ pettyCashIn: -30, total: 970 });
+  });
+
+  test("anything above the hold is paid out", () => {
+    expect(pettyCashFlow(1000, 80, 50)).toEqual({ pettyCashIn: 30, total: 1030 });
+  });
+
+  test("the top-up stops when the loot runs out", () => {
+    expect(pettyCashFlow(10, 5, 50)).toEqual({ pettyCashIn: -10, total: 0 });
+  });
+});
+
+describe("signed amounts", () => {
+  test("a leading minus makes the amount negative", () => {
+    expect(parseSignedAmount("-12.5", 2)).toBe(-1250);
+    expect(parseSignedAmount(" − 3", 0)).toBe(-3);
+    expect(parseSignedAmount("4", 1)).toBe(40);
+    expect(parseSignedAmount("", 2)).toBeNull();
+    expect(parseSignedAmount("-", 2)).toBeUndefined();
+    expect(parseSignedAmount("--1", 2)).toBeUndefined();
   });
 });

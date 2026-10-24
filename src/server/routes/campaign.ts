@@ -1,5 +1,5 @@
 import { and, eq, gt, sql } from "drizzle-orm";
-import { campaign, character, loot, session } from "../db/schema.ts";
+import { campaign, character, loot, pettyCashEntry, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { badRequest } from "../lib/errors.ts";
 import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
@@ -61,10 +61,15 @@ export function campaignRoutes(r: Router) {
         );
       }
       // Petty cash is held in minor units, so its meaning would change too.
-      if (c.pettyCash !== 0) {
+      const ledger = ctx.db
+        .select({ n: sql<number>`count(*)` })
+        .from(pettyCashEntry)
+        .where(eq(pettyCashEntry.campaignId, c.id))
+        .get();
+      if (c.pettyCash !== 0 || (ledger?.n ?? 0) > 0) {
         throw badRequest(
-          "Decimal places can't change while there's petty cash.",
-          { currencyDecimals: "Locked because petty cash is held." },
+          "Decimal places can't change once petty cash has been recorded.",
+          { currencyDecimals: "Locked because petty cash has been recorded." },
         );
       }
     }

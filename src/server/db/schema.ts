@@ -62,8 +62,13 @@ export const campaign = sqliteTable(
     currencyDecimals: integer("currency_decimals").notNull().default(2),
     /** Where item links will point, e.g. a rules reference site. */
     baseReferenceUrl: text("base_reference_url"),
-    /** Split leftovers that don't divide evenly, in minor units. */
+    /**
+     * The balance of the petty cash ledger, in minor units: split leftovers
+     * plus whatever the GM paid in or out by hand.
+     */
     pettyCash: integer("petty_cash").notNull().default(0),
+    /** What each split tops petty cash up (or pays it down) to. */
+    pettyCashHold: integer("petty_cash_hold").notNull().default(0),
     /** Whether a split may leave a character owing, carried as debt. */
     allowDebt: integer("allow_debt", { mode: "boolean" })
       .notNull()
@@ -119,9 +124,12 @@ export const split = sqliteTable(
     campaignId: text("campaign_id")
       .notNull()
       .references(() => campaign.id, { onDelete: "cascade" }),
-    /** The loot sold plus `pettyCashIn`. */
+    /** The loot sold plus `pettyCashIn`: what the shares divided. */
     total: integer("total").notNull(),
-    /** The petty cash this split paid out, restored if it's undone. */
+    /**
+     * Petty cash above the hold that this split paid out, or, when
+     * negative, what it took from the loot to top petty cash up to the hold.
+     */
     pettyCashIn: integer("petty_cash_in").notNull().default(0),
     totalShares: integer("total_shares").notNull(),
     createdAt: createdAt(),
@@ -148,6 +156,29 @@ export const splitShare = sqliteTable(
     net: integer("net").notNull(),
   },
   (t) => [index("split_share_split_idx").on(t.splitId)],
+);
+
+/**
+ * One change to a campaign's petty cash: paid in when positive, paid out
+ * when negative. A split's own change carries its `splitId` and goes when
+ * the split is undone; the GM writes the rest by hand.
+ */
+export const pettyCashEntry = sqliteTable(
+  "petty_cash_entry",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => campaign.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    description: text("description").notNull(),
+    amount: integer("amount").notNull(),
+    splitId: integer("split_id").references(() => split.id, {
+      onDelete: "cascade",
+    }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("petty_cash_entry_campaign_idx").on(t.campaignId)],
 );
 
 export const loot = sqliteTable(
@@ -191,3 +222,4 @@ export type Session = typeof session.$inferSelect;
 export type Loot = typeof loot.$inferSelect;
 export type Split = typeof split.$inferSelect;
 export type SplitShare = typeof splitShare.$inferSelect;
+export type PettyCashEntry = typeof pettyCashEntry.$inferSelect;
