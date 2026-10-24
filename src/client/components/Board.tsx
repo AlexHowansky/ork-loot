@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { CampaignView } from "../../shared/types.ts";
 import { Money } from "./Money.tsx";
-import { DEFAULT_SORT, LootTable, type LootSort, type StatusFilter } from "./LootTable.tsx";
+import { DEFAULT_SORT, LootTable, type ClaimFilter, type LootSort, type StatusFilter } from "./LootTable.tsx";
 import { CharacterTable } from "./CharacterTable.tsx";
 import { SessionTable } from "./SessionTable.tsx";
 import { SplitHistory } from "./SplitHistory.tsx";
@@ -27,6 +27,7 @@ export function CampaignBoard({
   const [tab, setTab] = useState<Tab>("loot");
   const [sessionFilter, setSessionFilter] = useState<number | "all">("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pool");
+  const [claimFilter, setClaimFilter] = useState<ClaimFilter>("all");
   const [search, setSearch] = useState("");
   const [lootSort, setLootSort] = useState<LootSort>(DEFAULT_SORT);
   const { campaign, pool } = view;
@@ -141,6 +142,8 @@ export function CampaignBoard({
               onSessionFilter={setSessionFilter}
               statusFilter={statusFilter}
               onStatusFilter={setStatusFilter}
+              claimFilter={claimFilter}
+              onClaimFilter={setClaimFilter}
               search={search}
               onSearch={setSearch}
               sort={lootSort}
@@ -155,6 +158,7 @@ export function CampaignBoard({
               onShowLoot={(id) => {
                 setSessionFilter(id);
                 setStatusFilter("all");
+                setClaimFilter("all");
                 setSearch("");
                 setTab("loot");
               }}

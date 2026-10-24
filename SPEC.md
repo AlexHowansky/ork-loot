@@ -210,10 +210,13 @@ they have claimed from the pool.
   and claimed), "Available" (not yet claimed), "Gone" (sold, bought and
   abandoned) and "All".
 
+* The loot table also filters by who claimed or bought an item: "Anyone",
+  "Unclaimed" (no character) or one character, listed by name.
+
 * A search box beside the loot table's filters narrows it to items whose
   name contains the text typed, ignoring case and accents. It works together
-  with the session and status filters, and Escape clears it. Following a
-  session's link to its loot clears the search.
+  with the other filters, and Escape clears it. Following a session's link
+  to its loot clears the search and the character filter.
 
 * Item statuses are as follows:
     * Available: This item is in the current loot pool, is free to be claimed,

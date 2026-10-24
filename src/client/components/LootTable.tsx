@@ -42,6 +42,9 @@ const FILTER_LABEL: Record<StatusFilter, string> = {
   all: "All",
 };
 
+/** Whose items to show: anyone's, nobody's, or one character's (by id). */
+export type ClaimFilter = "all" | "none" | string;
+
 export type SortKey = "name" | "quantity" | "value" | "marketPct" | "subtotal" | "status" | "claim" | "session";
 
 export interface LootSort {
@@ -68,6 +71,8 @@ export function LootTable({
   onSessionFilter,
   statusFilter,
   onStatusFilter,
+  claimFilter,
+  onClaimFilter,
   search,
   onSearch,
   sort,
@@ -79,6 +84,8 @@ export function LootTable({
   onSessionFilter: (v: number | "all") => void;
   statusFilter: StatusFilter;
   onStatusFilter: (v: StatusFilter) => void;
+  claimFilter: ClaimFilter;
+  onClaimFilter: (v: ClaimFilter) => void;
   /** Text the item names must contain. */
   search: string;
   onSearch: (v: string) => void;
@@ -100,6 +107,9 @@ export function LootTable({
   const claimants = view.characters.filter((c) => c.shares > 0);
   const canClaim = mode.kind === "gm" ? claimants.length > 0 : claimants.some((c) => c.id === mode.characterId);
   const needle = fold(search.trim());
+  // A character deleted while chosen leaves nothing to match, so show everyone's.
+  const claimedBy =
+    claimFilter === "all" || claimFilter === "none" || nameById.has(claimFilter) ? claimFilter : "all";
   // What each column sorts by; null is a blank or hidden cell, which sorts last either way.
   const sortValue: Record<SortKey, (l: LootView) => string | number | null> = {
     name: (l) => l.name,
@@ -118,6 +128,7 @@ export function LootTable({
       (l) =>
         FILTER[statusFilter](l.status) &&
         (sessionFilter === "all" || l.sessionId === sessionFilter) &&
+        (claimedBy === "all" || l.characterId === (claimedBy === "none" ? null : claimedBy)) &&
         (!needle || fold(l.name).includes(needle)),
     )
     .sort((a, b) => {
@@ -250,6 +261,22 @@ export function LootTable({
               {s.title ? ` — ${s.title}` : ""}
             </option>
           ))}
+        </select>
+        <select
+          className="select select-sm w-auto"
+          aria-label="Claimed by"
+          value={claimedBy}
+          onChange={(e) => onClaimFilter(e.target.value)}
+        >
+          <option value="all">Anyone</option>
+          <option value="none">Unclaimed</option>
+          {[...view.characters]
+            .sort((a, b) => byName.compare(a.name, b.name))
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
         </select>
         <label className="input input-sm w-48">
           <Icon icon={faMagnifyingGlass} className="text-base-content/50" />
