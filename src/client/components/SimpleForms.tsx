@@ -13,6 +13,7 @@ import { Modal } from "./Modal.tsx";
 import { CancelButton, SubmitButton } from "./SubmitButton.tsx";
 import { useSubmit } from "./useSubmit.ts";
 import { useConfirm } from "./Confirm.tsx";
+import { STATUS_LABEL } from "../../shared/status.ts";
 
 export function CharacterForm({
   campaignId,
@@ -312,6 +313,69 @@ export function ClaimForm({
             will come off {forName ? `${forName}'s` : "your"} share.
           </p>
         )}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Asks the GM which character has an item whose status is changing to
+ * claimed or bought, when the item doesn't already name one.
+ */
+export function StatusCharacterForm({
+  item,
+  status,
+  characters,
+  onClose,
+  onSaved,
+}: {
+  item: LootView;
+  status: "claimed" | "bought";
+  characters: CharacterView[];
+  onClose: () => void;
+  onSaved: (characterName: string) => void;
+}) {
+  const [forId, setForId] = useState(characters[0]?.id ?? "");
+  const s = useSubmit();
+  const forName = characters.find((c) => c.id === forId)?.name;
+  const label = STATUS_LABEL[status].toLowerCase();
+  const submit = () =>
+    s.run(async () => {
+      await api.patch(`/api/loot/${item.id}`, { status, characterId: forId });
+      onSaved(forName ?? "");
+      onClose();
+    });
+  return (
+    <Modal
+      title={`Mark ${item.name} ${label}`}
+      onClose={onClose}
+      onSubmit={submit}
+      actions={
+        <>
+          <CancelButton onClick={onClose} />
+          <SubmitButton busy={s.busy} disabled={!forName}>
+            Mark {label}
+            {forName ? ` by ${forName}` : ""}
+          </SubmitButton>
+        </>
+      }
+    >
+      <div className="w-72 max-w-full">
+        <FormError message={s.hasFieldErrors ? null : s.message} />
+        <Field label={`Which character ${label} it?`} error={s.fields.characterId}>
+          <select
+            className={withError("select w-full", s.fields.characterId)}
+            value={forId}
+            data-autofocus
+            onChange={(e) => setForId(e.target.value)}
+          >
+            {characters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
     </Modal>
   );

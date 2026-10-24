@@ -197,6 +197,19 @@ they have claimed from the pool.
   can for abandoned. Hovering over a status pill shows what that status
   means, as described below.
 
+* For the GM, each status pill is also a button. Clicking it opens a menu
+  of the other statuses, and choosing one changes the item's status:
+    * Claimed, for an available item, asks for the character and, for a
+      stack, how many, just as the Claim button does.
+    * Available, for a claimed item, releases the claim, just as the
+      Release button does.
+    * Claimed or bought keeps the item's character when it has one that
+      can hold it; otherwise the GM is asked which character. Claimed
+      can't be chosen while no character has shares, nor bought while
+      the campaign has no characters.
+    * Any other status clears the item's character.
+  Players see a plain pill that can't be clicked.
+
 * When the loot table shows all sessions, a "Session" column after "Claim"
   shows the session's date. Hovering over the date shows that session's title
   and notes.

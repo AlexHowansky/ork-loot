@@ -2,11 +2,11 @@ import { useState } from "react";
 import { api, errorMessage } from "../api.ts";
 import { useRefresh } from "../queries.ts";
 import type { CampaignView, LootView } from "../../shared/types.ts";
-import { LOOT_STATUSES, type LootStatus } from "../../shared/status.ts";
+import { CHARACTER_STATUSES, LOOT_STATUSES, STATUS_LABEL, type LootStatus } from "../../shared/status.ts";
 import { Money } from "./Money.tsx";
-import { StatusBadge } from "./StatusBadge.tsx";
+import { StatusBadge, StatusMenu } from "./StatusBadge.tsx";
 import { LootForm } from "./LootForm.tsx";
-import { ClaimForm } from "./SimpleForms.tsx";
+import { ClaimForm, StatusCharacterForm } from "./SimpleForms.tsx";
 import { useConfirm } from "./Confirm.tsx";
 import { useToast } from "./Toast.tsx";
 import {
@@ -99,6 +99,7 @@ export function LootTable({
   const { campaign } = view;
   const [editing, setEditing] = useState<LootView | "new" | null>(null);
   const [claiming, setClaiming] = useState<LootView | null>(null);
+  const [assigning, setAssigning] = useState<{ item: LootView; status: "claimed" | "bought" } | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const refresh = useRefresh();
   const ask = useConfirm();
@@ -203,6 +204,55 @@ export function LootTable({
       `Released ${item.name} back to the pool.`,
     );
   }
+
+  /**
+   * The GM changes an item's status from its pill. Claiming an available
+   * item and releasing a claim work as their buttons do; a status that
+   * needs a character the item doesn't have asks which one.
+   */
+  function changeStatus(item: LootView, status: LootStatus) {
+    if (status === "claimed" && item.status === "available") {
+      setClaiming(item);
+      return;
+    }
+    if (status === "available" && item.status === "claimed") {
+      release(item);
+      return;
+    }
+    if (status === "claimed" || status === "bought") {
+      const keeps =
+        status === "claimed"
+          ? claimants.some((c) => c.id === item.characterId)
+          : item.characterId !== null && nameById.has(item.characterId);
+      if (!keeps) {
+        setAssigning({ item, status });
+        return;
+      }
+    }
+    act(
+      item,
+      () => api.patch(`/api/loot/${item.id}`, { status }),
+      `Marked ${item.name} ${STATUS_LABEL[status].toLowerCase()}.`,
+    );
+  }
+
+  // Claims need a character with shares; bought items any character.
+  const unavailable = CHARACTER_STATUSES.filter((st) =>
+    st === "claimed" ? !claimants.length : !view.characters.length,
+  );
+
+  const statusPill = (item: LootView, tip: "left" | "right" = "left") =>
+    gm ? (
+      <StatusMenu
+        status={item.status}
+        itemName={item.name}
+        tip={tip}
+        unavailable={unavailable}
+        onChoose={(st) => changeStatus(item, st)}
+      />
+    ) : (
+      <StatusBadge status={item.status} tip={tip} />
+    );
 
   /** A column header that sorts the table; choosing it again reverses the order. */
   const sortHeader = (key: SortKey, label: string, className = "") => {
@@ -373,7 +423,7 @@ export function LootTable({
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-1 sm:hidden">
-                        <StatusBadge status={item.status} tip="right" />
+                        {statusPill(item, "right")}
                         {claimant && <span className="text-xs text-base-content/70">{claimant}</span>}
                       </div>
                       {item.description && (
@@ -405,7 +455,7 @@ export function LootTable({
                       )}
                     </td>
                     <td className="hidden sm:table-cell">
-                      <StatusBadge status={item.status} />
+                      {statusPill(item)}
                     </td>
                     <td className="hidden whitespace-nowrap sm:table-cell">{claimant}</td>
                     {sessionFilter === "all" && (
@@ -467,6 +517,18 @@ export function LootTable({
           defaultSessionId={sessionFilter === "all" ? undefined : sessionFilter}
           onClose={() => setEditing(null)}
           onSaved={refresh}
+        />
+      )}
+      {assigning && (
+        <StatusCharacterForm
+          item={assigning.item}
+          status={assigning.status}
+          characters={assigning.status === "claimed" ? claimants : view.characters}
+          onClose={() => setAssigning(null)}
+          onSaved={(forName) => {
+            toast(`Marked ${assigning.item.name} ${assigning.status} by ${forName}.`);
+            refresh();
+          }}
         />
       )}
       {claiming && (
