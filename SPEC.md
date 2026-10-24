@@ -114,7 +114,8 @@ they have claimed from the pool.
 * Players can provide a code to take ownership of one character in one campaign.
   This session does not expire. One browser can hold several characters, with
   a picker to switch between them, and can choose to forget a character. The
-  picker shows a card per character, with its campaign's image.
+  picker shows a card per character, with its campaign's image. A browser
+  holding no characters yet shows the join code box on its first screen.
 
 * Players see the whole campaign: every loot item, every character's shares
   and projected payout, and the split history. Join codes are GM-only.

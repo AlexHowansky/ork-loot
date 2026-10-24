@@ -4,6 +4,7 @@ import { LoadError, Loading } from "../components/Layout.tsx";
 import { CampaignCover } from "../components/CampaignCover.tsx";
 import { Icon, faDragon, faKey } from "../components/Icon.tsx";
 import { CampaignsPage } from "./CampaignsPage.tsx";
+import { JoinForm } from "./JoinPage.tsx";
 
 export function HomePage() {
   const { data: me, error, isPending } = useMe();
@@ -25,9 +26,10 @@ export function HomePage() {
             <Icon icon={faDragon} className="text-primary" /> Welcome, adventurer
           </h1>
           <p className="text-base-content/70">
-            Track your party's loot. Players join with a code from their GM.
+            Track your party's loot. Enter the join code your GM gave you for
+            your character.
           </p>
-          <div className="card-actions justify-end mt-2">{joinButton}</div>
+          <JoinForm />
         </div>
       </div>
     );
