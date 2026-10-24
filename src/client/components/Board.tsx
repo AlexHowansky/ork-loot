@@ -57,7 +57,7 @@ export function CampaignBoard({
       </section>
 
       <div className="stats mb-3 w-full grid-flow-row grid-cols-2 bg-base-100 shadow md:grid-cols-3 lg:grid-flow-col lg:grid-cols-none">
-        <Stat title="Pool to split" value={<Money amount={pool.sellable} campaign={campaign} />} desc="Available and claimed, at market" />
+        <Stat title="Pool to split" value={<Money amount={pool.sellable} campaign={campaign} />} desc="Available and claimed" />
         <Stat
           title="Per share"
           value={<Money amount={perShare} campaign={campaign} />}
@@ -132,7 +132,7 @@ export function CampaignBoard({
 
 function Stat({ title, value, desc }: { title: string; value: ReactNode; desc: string }) {
   return (
-    <div className="stat px-4 py-2">
+    <div className="stat place-items-center px-4 py-2 text-center">
       <div className="stat-title">{title}</div>
       <div className="stat-value text-2xl">{value}</div>
       <div className="stat-desc whitespace-normal">{desc}</div>
