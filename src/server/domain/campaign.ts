@@ -32,6 +32,7 @@ export function campaignInfo(c: Campaign): CampaignInfo {
     currencyDecimals: c.currencyDecimals,
     baseReferenceUrl: c.baseReferenceUrl,
     pettyCash: c.pettyCash,
+    allowDebt: c.allowDebt,
   };
 }
 
@@ -90,11 +91,12 @@ export function campaignLoot(db: Db, campaignId: string): Loot[] {
 
 /**
  * Pool totals plus each character's projected split right now. Petty cash
- * is divided along with the loot, so a split pays it out.
+ * is divided along with the loot, so a split pays it out, and each
+ * character's debt comes off their payout.
  */
 export function computePool(
   rows: Loot[],
-  characters: { id: string; shares: number }[],
+  characters: { id: string; shares: number; debt?: number }[],
   pettyCash: number,
 ) {
   let sellable = 0;
@@ -121,6 +123,7 @@ export function computePool(
       id: c.id,
       shares: c.shares,
       claimed: claimedBy.get(c.id) ?? 0,
+      debt: c.debt ?? 0,
     })),
   );
   const pool: PoolView = {
@@ -197,6 +200,7 @@ export function campaignView(
         shares: ch.shares,
         gross: a.gross,
         claimed: a.claimed,
+        debt: a.debt,
         net: a.net,
         ...(opts.forGm
           ? { joinCode: ch.joinCode, hasPlayer: ch.playerId !== null }
@@ -248,6 +252,7 @@ export function splitHistory(db: Db, campaignId: string): SplitView[] {
         shares: sh.shares,
         gross: sh.gross,
         claimed: sh.claimed,
+        debtIn: sh.debtIn,
         net: sh.net,
       })),
   }));

@@ -76,7 +76,14 @@ export function CampaignBoard({
           <Stat
             title="Your payout now"
             value={<Money amount={me.net} campaign={campaign} />}
-            desc={`Share ${me.shares} × per share, less claims`}
+            desc={`Share ${me.shares} × per share, less claims${me.debt > 0 ? " and debt" : ""}`}
+          />
+        )}
+        {me && me.debt > 0 && (
+          <Stat
+            title="Your debt"
+            value={<Money amount={me.debt} campaign={campaign} />}
+            desc="Taken off your next payouts"
           />
         )}
       </div>

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "f149c724-b965-4e3c-aa82-ec911f7345a9",
+  "id": "086896e8-3557-41b2-9e01-5f9c89f35eea",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -72,6 +72,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": 0
+        },
+        "allow_debt": {
+          "name": "allow_debt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -147,6 +155,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": 1
+        },
+        "debt": {
+          "name": "debt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "join_code": {
           "name": "join_code",
@@ -730,6 +746,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "debt_in": {
+          "name": "debt_in",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "net": {
           "name": "net",

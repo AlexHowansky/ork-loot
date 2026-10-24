@@ -9,6 +9,7 @@ import { Icon, faArrowRotateLeft } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
 export function SplitTable({ split, campaign }: { split: SplitView; campaign: CampaignInfo }) {
+  const owed = split.shares.some((s) => s.debtIn > 0);
   return (
     <div>
       <table className="table table-sm">
@@ -18,6 +19,7 @@ export function SplitTable({ split, campaign }: { split: SplitView; campaign: Ca
             <th className="text-right">Shares</th>
             <th className="text-right">Share of sale</th>
             <th className="text-right">Claimed</th>
+            {owed && <th className="text-right">Debt in</th>}
             <th className="text-right">Payout</th>
           </tr>
         </thead>
@@ -32,6 +34,11 @@ export function SplitTable({ split, campaign }: { split: SplitView; campaign: Ca
               <td className="text-right">
                 <Money amount={s.claimed} campaign={campaign} />
               </td>
+              {owed && (
+                <td className="text-right">
+                  <Money amount={s.debtIn} campaign={campaign} />
+                </td>
+              )}
               <td className="text-right font-semibold">
                 <Money amount={s.net} campaign={campaign} />
               </td>
@@ -58,8 +65,8 @@ export function SplitHistory({ view, mode }: { view: CampaignView; mode: Mode })
       message: (
         <p className="max-w-md">
           Bought items go back to their claimants and sold items back to the pool, petty cash returns to{" "}
-          <Money amount={split.pettyCash} campaign={view.campaign} className="font-semibold" />, and the split is
-          removed from the history.
+          <Money amount={split.pettyCash} campaign={view.campaign} className="font-semibold" />, each character's
+          debt returns to what it was before, and the split is removed from the history.
         </p>
       ),
       confirmLabel: "Undo split",

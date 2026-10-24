@@ -31,6 +31,13 @@ over when the last split couldn't be divided evenly. The next split pays it
 out along with the loot, so it never builds up past one unit per share. It
 isn't edited by hand. The GM and players see it next to the party fund.
 
+### Debt
+
+What a character still owes because their claims were worth more than
+their share in an earlier split. Only campaigns that allow debt carry it.
+The next splits take it off the character's payout until it is repaid. It
+isn't edited by hand.
+
 ### Session
 
 A single instance of game play, typically a few hours long. A session belongs to
@@ -67,6 +74,12 @@ they have claimed from the pool.
   Pathfinder 2E Remaster is gp, 2 places, https://2e.aonprd.com/; Starfinder
   2E is cr, 1 place, https://2e.aonsrd.com/. Once decimal places are locked,
   systems that use different decimal places can't be picked.
+
+* Each campaign has an "Allow debt" checkbox, off by default. When it's
+  off, a split can't run while any character's payout would be negative;
+  the split preview says who and why. When it's on, a negative payout
+  becomes that character's debt. Debt can't be turned off while any
+  character owes.
 
 * Each campaign may set a base reference URL (an http or https address, e.g.
   a rules reference site). The loot form searches it for items (see below).
@@ -211,10 +224,12 @@ they have claimed from the pool.
       shares each has. A split needs at least one share among the
       characters. A character with 0 shares takes no part in the split and
       isn't recorded in it.
-    * Subtract the value of each player's claimed items from their share.
+    * Subtract the value of each player's claimed items, and any debt they
+      owe, from their share.
     * Report each player's split value. This is how much they earn from the
-      sale. It can be negative when their claims are worth more than their
-      share.
+      sale. It can be negative when their claims and debt are worth more
+      than their share; that is refused unless the campaign allows debt,
+      in which case it becomes their debt.
     * Update each claimed item to bought. Update each available item to sold.
 
 * Claimed items are valued at their market-adjusted subtotal, the same figure
@@ -227,7 +242,15 @@ they have claimed from the pool.
   each split divided and kept.
 
 * The board's pool to split and per-share figures, and each character's
-  projected payout, include the petty cash.
+  projected payout, include the petty cash. Projected payouts also take off
+  each character's debt.
+
+* Debt repaid in a split is only held back from the debtor's payout; it
+  isn't divided among the others, who were paid their full share in the
+  split where the debt arose. A character with 0 shares keeps their debt
+  until a later split they take part in. The characters table shows a
+  Debt column, and the split history a "Debt in" column, whenever there
+  is any; a player who owes sees their debt on the board.
 
 * The GM sees a preview of the split before running it. Every split is kept
   in a history showing each character's share, claims and payout.
@@ -235,7 +258,7 @@ they have claimed from the pool.
 * The GM can undo the most recent split, from a button in its entry in the
   split history, after confirming. Undoing it turns its bought items back
   into claims for the same characters and its sold items back to available,
-  puts petty cash back to what it was before the split, and removes the
-  split from the history. Older splits can then be undone in turn. A bought
-  item whose character now has 0 shares goes back to available instead,
-  since that character can't hold a claim.
+  puts petty cash and each character's debt back to what they were before
+  the split, and removes the split from the history. Older splits can then
+  be undone in turn. A bought item whose character now has 0 shares goes
+  back to available instead, since that character can't hold a claim.

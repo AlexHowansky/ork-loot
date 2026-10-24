@@ -8,6 +8,7 @@ CREATE TABLE `campaign` (
 	`currency_decimals` integer DEFAULT 2 NOT NULL,
 	`base_reference_url` text,
 	`petty_cash` integer DEFAULT 0 NOT NULL,
+	`allow_debt` integer DEFAULT false NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
 	FOREIGN KEY (`gm_id`) REFERENCES `gm`(`id`) ON UPDATE no action ON DELETE cascade
@@ -19,6 +20,7 @@ CREATE TABLE `character` (
 	`campaign_id` text NOT NULL,
 	`name` text NOT NULL,
 	`shares` integer DEFAULT 1 NOT NULL,
+	`debt` integer DEFAULT 0 NOT NULL,
 	`join_code` text,
 	`player_id` integer,
 	`created_at` integer NOT NULL,
@@ -104,6 +106,7 @@ CREATE TABLE `split_share` (
 	`shares` integer NOT NULL,
 	`gross` integer NOT NULL,
 	`claimed` integer NOT NULL,
+	`debt_in` integer DEFAULT 0 NOT NULL,
 	`net` integer NOT NULL,
 	FOREIGN KEY (`split_id`) REFERENCES `split`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`character_id`) REFERENCES `character`(`id`) ON UPDATE no action ON DELETE set null

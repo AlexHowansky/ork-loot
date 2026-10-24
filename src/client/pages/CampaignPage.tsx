@@ -111,6 +111,7 @@ export function CampaignPage() {
         <CampaignForm
           campaign={campaign}
           decimalsLocked={view.loot.length > 0}
+          debtLocked={view.characters.some((c) => c.debt > 0)}
           onClose={() => setEditing(false)}
           onSaved={() => {
             setEditing(false);

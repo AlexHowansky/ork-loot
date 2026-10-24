@@ -34,6 +34,17 @@ describe("money", () => {
 describe("allocate", () => {
   const sum = (xs: { gross: number }[]) => xs.reduce((n, x) => n + x.gross, 0);
 
+  test("takes debt off the payout", () => {
+    const out = allocate(1000, [
+      { id: "1", shares: 1, claimed: 100, debt: 300 },
+      { id: "2", shares: 1, claimed: 0 },
+    ]);
+    expect(out.rows.map((a) => [a.gross, a.debt, a.net])).toEqual([
+      [500, 300, 100],
+      [500, 0, 500],
+    ]);
+  });
+
   test("divides by shares", () => {
     const out = allocate(1000, [
       { id: "1", shares: 1, claimed: 0 },

@@ -500,6 +500,7 @@ describe("loot split", () => {
   test("an undone claim goes back to its claimant", async () => {
     const { campaignId, sessionId, characterIds, view } = await seed();
     const [amiri] = characterIds as [string];
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Sword", value: 4000 });
     await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Ring", value: 800, status: "claimed", characterId: amiri });
     const s = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
     const gmB = new Client(ctx.app);
@@ -586,6 +587,88 @@ describe("loot split", () => {
     const res = await gmA.post(`/api/campaigns/${campaignId}/split`);
     expect(res.status).toBe(400);
     expect(res.body.error).toContain("at least one character a share");
+  });
+
+  test("without debt allowed, nobody may end a split owing", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri] = characterIds as [string];
+    // 4 shares of 1200 is 300 each; Amiri's 800 ring leaves them 500 short.
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Sword", value: 800 });
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Ring", value: 1600, status: "claimed", characterId: amiri });
+    const preview = (await gmA.get(`/api/campaigns/${campaignId}/split/preview`)).body;
+    expect(preview.shares.find((s: any) => s.characterName === "Amiri").net).toBe(-500);
+
+    const res = await gmA.post(`/api/campaigns/${campaignId}/split`);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("Amiri would end the split owing");
+    const now = await view();
+    expect(now.splits).toHaveLength(0);
+    expect(now.loot.map((l) => l.status).sort()).toEqual(["available", "claimed"]);
+  });
+
+  test("with debt allowed, a shortfall carries forward until repaid", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri] = characterIds as [string];
+    const add = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, body);
+    const split = async () => (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    const amiriNow = async () => (await view()).characters.find((c) => c.id === amiri)!;
+    const setDebt = (allowDebt: boolean) =>
+      gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, allowDebt });
+    expect((await setDebt(true)).body.allowDebt).toBe(true);
+
+    // 300 a share; Amiri's 800 ring leaves them owing 500.
+    await add({ name: "Sword", value: 800 });
+    await add({ name: "Ring", value: 1600, status: "claimed", characterId: amiri });
+    const first = await split();
+    expect(first.shares.find((s: any) => s.characterName === "Amiri")).toMatchObject({ debtIn: 0, net: -500 });
+    expect(await amiriNow()).toMatchObject({ debt: 500, net: -500 });
+
+    // Debt can't be turned off while it's owed.
+    const off = await setDebt(false);
+    expect(off.status).toBe(400);
+    expect(off.body.fields.allowDebt).toBeDefined();
+
+    // 300 a share again: it pays off part of the debt.
+    await add({ name: "Statue", value: 2400 });
+    const second = await split();
+    expect(second.shares.find((s: any) => s.characterName === "Amiri")).toMatchObject({ debtIn: 500, net: -200 });
+    expect((await amiriNow()).debt).toBe(200);
+
+    // 500 a share clears it; the others are paid in full.
+    await add({ name: "Vase", value: 4000 });
+    expect((await amiriNow()).net).toBe(300);
+    const third = await split();
+    const byName = Object.fromEntries(third.shares.map((s: any) => [s.characterName, s]));
+    expect(byName.Amiri).toMatchObject({ gross: 500, debtIn: 200, net: 300 });
+    expect(byName.Ezren).toMatchObject({ gross: 500, debtIn: 0, net: 500 });
+    expect(byName.Valeros).toMatchObject({ gross: 1000, net: 1000 });
+    expect((await amiriNow()).debt).toBe(0);
+
+    // Undoing each split puts the debt back as it was before it.
+    const undo = (id: number) => gmA.del(`/api/campaigns/${campaignId}/splits/${id}`);
+    await undo(third.id);
+    expect((await amiriNow()).debt).toBe(200);
+    await undo(second.id);
+    expect((await amiriNow()).debt).toBe(500);
+    await undo(first.id);
+    expect((await amiriNow()).debt).toBe(0);
+    expect((await setDebt(false)).status).toBe(200);
+  });
+
+  test("a character with no shares keeps their debt", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri] = characterIds as [string];
+    const add = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, body);
+    await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, allowDebt: true });
+    await add({ name: "Ring", value: 1600, status: "claimed", characterId: amiri });
+    await gmA.post(`/api/campaigns/${campaignId}/split`);
+    expect((await view()).characters.find((c) => c.id === amiri)!.debt).toBe(600);
+
+    await gmA.patch(`/api/characters/${amiri}`, { name: "Amiri", shares: 0 });
+    await add({ name: "Sword", value: 1200 });
+    const res = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    expect(res.shares.map((s: any) => s.characterName).sort()).toEqual(["Ezren", "Valeros"]);
+    expect((await view()).characters.find((c) => c.id === amiri)!.debt).toBe(600);
   });
 
   test("a partial update leaves other fields alone", async () => {

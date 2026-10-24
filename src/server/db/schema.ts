@@ -64,6 +64,10 @@ export const campaign = sqliteTable(
     baseReferenceUrl: text("base_reference_url"),
     /** Split leftovers that don't divide evenly, in minor units. */
     pettyCash: integer("petty_cash").notNull().default(0),
+    /** Whether a split may leave a character owing, carried as debt. */
+    allowDebt: integer("allow_debt", { mode: "boolean" })
+      .notNull()
+      .default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -79,6 +83,8 @@ export const character = sqliteTable(
       .references(() => campaign.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     shares: integer("shares").notNull().default(1),
+    /** What this character still owes from earlier splits, in minor units. */
+    debt: integer("debt").notNull().default(0),
     joinCode: text("join_code").unique(),
     playerId: integer("player_id").references(() => player.id, {
       onDelete: "set null",
@@ -137,6 +143,8 @@ export const splitShare = sqliteTable(
     shares: integer("shares").notNull(),
     gross: integer("gross").notNull(),
     claimed: integer("claimed").notNull(),
+    /** Debt brought into this split, restored if it's undone. */
+    debtIn: integer("debt_in").notNull().default(0),
     net: integer("net").notNull(),
   },
   (t) => [index("split_share_split_idx").on(t.splitId)],

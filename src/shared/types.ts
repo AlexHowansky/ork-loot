@@ -29,6 +29,8 @@ export interface CampaignInfo {
    * Not editable by hand.
    */
   pettyCash: number;
+  /** Whether a split may leave a character owing, carried as debt. */
+  allowDebt: boolean;
 }
 
 /** An item found on the campaign's reference site. */
@@ -56,6 +58,9 @@ export interface CharacterView {
   gross: number;
   /** Market value of items this character has claimed. */
   claimed: number;
+  /** Owed from earlier splits; the next split takes it off their payout. */
+  debt: number;
+  /** Projected payout: gross minus claims and debt. */
   net: number;
   /** GM only: the unused join code, if any. */
   joinCode?: string | null;
@@ -105,6 +110,9 @@ export interface SplitShareView {
   shares: number;
   gross: number;
   claimed: number;
+  /** Debt brought into this split and taken off the payout. */
+  debtIn: number;
+  /** Negative when the character ends the split owing. */
   net: number;
 }
 

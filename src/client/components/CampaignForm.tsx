@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { api } from "../api.ts";
 import { GAME_SYSTEMS, matchGameSystem } from "../../shared/game-systems.ts";
 import { MAX_DECIMALS } from "../../shared/money.ts";
@@ -14,12 +14,15 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function CampaignForm({
   campaign,
   decimalsLocked = false,
+  debtLocked = false,
   onClose,
   onSaved,
 }: {
   campaign?: CampaignInfo;
   /** Decimal places can't change once loot exists. */
   decimalsLocked?: boolean;
+  /** Debt can't be turned off while characters still owe. */
+  debtLocked?: boolean;
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
@@ -28,7 +31,10 @@ export function CampaignForm({
   const [currencyLabel, setLabel] = useState(campaign?.currencyLabel ?? "gp");
   const [currencyDecimals, setDecimals] = useState(campaign?.currencyDecimals ?? 2);
   const [baseReferenceUrl, setReferenceUrl] = useState(campaign?.baseReferenceUrl ?? "");
+  const [allowDebt, setAllowDebt] = useState(campaign?.allowDebt ?? false);
   const [image, setImage] = useState<File | null>(null);
+  const allowDebtId = useId();
+  const debtLockedNow = debtLocked && allowDebt;
   const s = useSubmit();
   // The selector just reflects the fields; editing one by hand shows "Custom".
   const system = matchGameSystem({ currencyLabel, currencyDecimals, baseReferenceUrl });
@@ -43,7 +49,7 @@ export function CampaignForm({
 
   const submit = () =>
     s.run(async () => {
-      const body = { name, startDate, currencyLabel, currencyDecimals, baseReferenceUrl };
+      const body = { name, startDate, currencyLabel, currencyDecimals, baseReferenceUrl, allowDebt };
       const saved = campaign
         ? await api.patch<CampaignInfo>(`/api/campaigns/${campaign.id}`, body)
         : await api.post<CampaignInfo>("/api/campaigns", body);
@@ -151,6 +157,33 @@ export function CampaignForm({
             onChange={(e) => setReferenceUrl(e.target.value)}
           />
         </Field>
+        <div className="fieldset py-1">
+          <label htmlFor={allowDebtId} className="fieldset-legend pb-1">
+            Allow debt
+          </label>
+          <div className="flex items-start gap-2">
+            <input
+              id={allowDebtId}
+              type="checkbox"
+              className="checkbox checkbox-sm mt-0.5"
+              disabled={debtLockedNow}
+              checked={allowDebt}
+              aria-invalid={s.fields.allowDebt ? true : undefined}
+              aria-describedby={`${allowDebtId}-note`}
+              onChange={(e) => setAllowDebt(e.target.checked)}
+            />
+            <p
+              id={`${allowDebtId}-note`}
+              className={`text-xs leading-snug ${s.fields.allowDebt ? "text-error" : "text-base-content/60"}`}
+            >
+              {s.fields.allowDebt ??
+                (debtLockedNow
+                  ? "Locked while characters carry debt."
+                  : "When a character's claims are worth more than their share, a split carries the " +
+                    "difference forward as debt, taken off their later payouts. Otherwise the split can't run.")}
+            </p>
+          </div>
+        </div>
         <Field label={campaign?.backgroundImage ? "Replace background image" : "Background image"} hint="Optional. PNG, JPEG or WebP, up to 5 MB.">
           <input
             type="file"

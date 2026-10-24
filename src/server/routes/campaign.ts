@@ -1,5 +1,5 @@
-import { eq, sql } from "drizzle-orm";
-import { campaign, loot, session } from "../db/schema.ts";
+import { and, eq, gt, sql } from "drizzle-orm";
+import { campaign, character, loot, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { badRequest } from "../lib/errors.ts";
 import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
@@ -65,6 +65,19 @@ export function campaignRoutes(r: Router) {
         throw badRequest(
           "Decimal places can't change while there's petty cash.",
           { currencyDecimals: "Locked because petty cash is held." },
+        );
+      }
+    }
+    if (c.allowDebt && !input.allowDebt) {
+      const owing = ctx.db
+        .select({ n: sql<number>`count(*)` })
+        .from(character)
+        .where(and(eq(character.campaignId, c.id), gt(character.debt, 0)))
+        .get();
+      if ((owing?.n ?? 0) > 0) {
+        throw badRequest(
+          "Debt can't be turned off while characters still owe.",
+          { allowDebt: "Locked while characters carry debt." },
         );
       }
     }
@@ -145,6 +158,7 @@ export function campaignRoutes(r: Router) {
       splitId: result.id,
       total: result.total,
       leftover: result.leftover,
+      debt: result.shares.reduce((n, sh) => n + Math.max(0, -sh.net), 0),
     });
     return result;
   });

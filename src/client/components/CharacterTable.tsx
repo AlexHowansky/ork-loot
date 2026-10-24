@@ -63,6 +63,9 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
     if (ok) await attempt(() => api.del(`/api/characters/${c.id}`), `Deleted ${c.name}.`);
   }
 
+  // Only campaigns where someone owes need the column.
+  const owed = view.characters.some((c) => c.debt > 0);
+
   return (
     <div>
       {gm && (
@@ -85,6 +88,7 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
                 <th className="text-right">Shares</th>
                 <th className="text-right">Share of pool</th>
                 <th className="text-right">Claimed</th>
+                {owed && <th className="text-right">Debt</th>}
                 <th className="text-right">Payout now</th>
                 {gm && <th>Player</th>}
                 {gm && (
@@ -110,6 +114,11 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
                     <td className="text-right">
                       <Money amount={c.claimed} campaign={campaign} />
                     </td>
+                    {owed && (
+                      <td className="text-right">
+                        <Money amount={c.debt} campaign={campaign} />
+                      </td>
+                    )}
                     <td className="text-right font-semibold">
                       <Money amount={c.net} campaign={campaign} />
                     </td>

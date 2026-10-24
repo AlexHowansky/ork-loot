@@ -9,6 +9,7 @@ import { FormError } from "./Field.tsx";
 import { CancelButton, SubmitButton } from "./SubmitButton.tsx";
 import { useSubmit } from "./useSubmit.ts";
 import { errorMessage } from "../api.ts";
+import { listNames } from "../../shared/names.ts";
 
 /** Previews a loot split and runs it on confirmation. */
 export function SplitModal({
@@ -27,6 +28,9 @@ export function SplitModal({
   });
   const s = useSubmit();
   const empty = preview.data && (preview.data.total === 0 || preview.data.totalShares === 0);
+  const owing = preview.data?.shares.filter((sh) => sh.net < 0) ?? [];
+  // Without debt allowed, nobody may end a split owing.
+  const blocked = !campaign.allowDebt && owing.length > 0;
 
   const submit = () =>
     s.run(async () => {
@@ -43,7 +47,7 @@ export function SplitModal({
       actions={
         <>
           <CancelButton onClick={onClose} />
-          <SubmitButton busy={s.busy} disabled={!preview.data || !!empty}>
+          <SubmitButton busy={s.busy} disabled={!preview.data || !!empty || blocked}>
             Run split
           </SubmitButton>
         </>
@@ -86,6 +90,20 @@ export function SplitModal({
                     divide evenly across the shares and will be kept as petty cash for the next split.
                   </p>
                 )}
+                {owing.length > 0 &&
+                  (blocked ? (
+                    <div role="alert" className="alert alert-warning alert-soft mt-2 py-2">
+                      <span>
+                        {listNames(owing.map((sh) => sh.characterName))} would end the split owing, because their
+                        claims are worth more than their share. Release some claims, or allow debt in the
+                        campaign's settings.
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-base-content/70">
+                      A negative payout is carried forward as debt and taken off that character's later payouts.
+                    </p>
+                  ))}
               </>
             )}
           </>
