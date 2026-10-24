@@ -2,7 +2,7 @@ import { useState } from "react";
 import { api, errorMessage } from "../api.ts";
 import { useRefresh } from "../queries.ts";
 import type { CampaignView, LootView } from "../../shared/types.ts";
-import type { LootStatus } from "../../shared/status.ts";
+import { LOOT_STATUSES, type LootStatus } from "../../shared/status.ts";
 import { Money } from "./Money.tsx";
 import { StatusBadge } from "./StatusBadge.tsx";
 import { LootForm } from "./LootForm.tsx";
@@ -18,6 +18,9 @@ import {
   faMagnifyingGlass,
   faPen,
   faPlus,
+  faSort,
+  faSortDown,
+  faSortUp,
   faTrash,
 } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
@@ -39,6 +42,15 @@ const FILTER_LABEL: Record<StatusFilter, string> = {
   all: "All",
 };
 
+export type SortKey = "name" | "quantity" | "value" | "marketPct" | "subtotal" | "status" | "claim" | "session";
+
+export interface LootSort {
+  key: SortKey;
+  dir: "asc" | "desc";
+}
+
+export const DEFAULT_SORT: LootSort = { key: "name", dir: "asc" };
+
 /** Orders item names alphabetically, ignoring case and reading digits as numbers. */
 const byName = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
@@ -58,6 +70,8 @@ export function LootTable({
   onStatusFilter,
   search,
   onSearch,
+  sort,
+  onSort,
 }: {
   view: CampaignView;
   mode: Mode;
@@ -68,6 +82,8 @@ export function LootTable({
   /** Text the item names must contain. */
   search: string;
   onSearch: (v: string) => void;
+  sort: LootSort;
+  onSort: (v: LootSort) => void;
 }) {
   const { campaign } = view;
   const [editing, setEditing] = useState<LootView | "new" | null>(null);
@@ -84,6 +100,19 @@ export function LootTable({
   const claimants = view.characters.filter((c) => c.shares > 0);
   const canClaim = mode.kind === "gm" ? claimants.length > 0 : claimants.some((c) => c.id === mode.characterId);
   const needle = fold(search.trim());
+  // What each column sorts by; null is a blank or hidden cell, which sorts last either way.
+  const sortValue: Record<SortKey, (l: LootView) => string | number | null> = {
+    name: (l) => l.name,
+    quantity: (l) => l.quantity,
+    value: (l) => (l.unidentified && !gm ? null : l.value),
+    marketPct: (l) => l.marketPct,
+    subtotal: (l) => (l.unidentified && !gm ? null : l.subtotal),
+    status: (l) => LOOT_STATUSES.indexOf(l.status),
+    claim: (l) => (l.characterId !== null ? (nameById.get(l.characterId) ?? null) : null),
+    session: (l) => sessionById.get(l.sessionId)?.date ?? null,
+  };
+  const keyOf = sortValue[sort.key];
+  const sign = sort.dir === "asc" ? 1 : -1;
   const rows = view.loot
     .filter(
       (l) =>
@@ -91,7 +120,20 @@ export function LootTable({
         (sessionFilter === "all" || l.sessionId === sessionFilter) &&
         (!needle || fold(l.name).includes(needle)),
     )
-    .sort((a, b) => byName.compare(a.name, b.name) || a.id - b.id);
+    .sort((a, b) => {
+      const x = keyOf(a);
+      const y = keyOf(b);
+      const byKey =
+        x === y
+          ? 0
+          : x === null
+            ? 1
+            : y === null
+              ? -1
+              : sign * (typeof x === "string" ? byName.compare(x, String(y)) : x - Number(y));
+      // Ties fall back to name, then session, then entry order.
+      return byKey || byName.compare(a.name, b.name) || a.sessionId - b.sessionId || a.id - b.id;
+    });
   // Unidentified items count as nothing, as they do in the pool.
   const shownTotal = rows.reduce((n, l) => n + (l.unidentified ? 0 : l.subtotal), 0);
 
@@ -145,6 +187,27 @@ export function LootTable({
       `Released ${item.name} back to the pool.`,
     );
   }
+
+  /** A column header that sorts the table; choosing it again reverses the order. */
+  const sortHeader = (key: SortKey, label: string, className = "") => {
+    const active = sort.key === key;
+    const right = className.includes("text-right");
+    return (
+      <th className={className} aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}>
+        <button
+          type="button"
+          className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-base-content ${right ? "flex-row-reverse" : ""} ${active ? "text-base-content" : ""}`}
+          onClick={() => onSort({ key, dir: active && sort.dir === "asc" ? "desc" : "asc" })}
+        >
+          {label}
+          <Icon
+            icon={active ? (sort.dir === "asc" ? faSortUp : faSortDown) : faSort}
+            className={active ? "" : "text-base-content/30"}
+          />
+        </button>
+      </th>
+    );
+  };
 
   const claimButton = (item: LootView) => (
     <button type="button" className="btn btn-xs" disabled={busyId === item.id} onClick={() => claim(item)}>
@@ -229,14 +292,14 @@ export function LootTable({
           <table className="table table-sm">
             <thead>
               <tr>
-                <th className="w-full">Item</th>
-                <th className="text-right">Qty</th>
-                <th className="hidden text-right sm:table-cell">Each</th>
-                <th className="hidden text-right sm:table-cell">Market</th>
-                <th className="text-right">Subtotal</th>
-                <th className="hidden sm:table-cell">Status</th>
-                <th className="hidden sm:table-cell">Claim</th>
-                {sessionFilter === "all" && <th className="hidden md:table-cell">Session</th>}
+                {sortHeader("name", "Item", "w-full")}
+                {sortHeader("quantity", "Qty", "text-right")}
+                {sortHeader("value", "Each", "hidden text-right sm:table-cell")}
+                {sortHeader("marketPct", "Market", "hidden text-right sm:table-cell")}
+                {sortHeader("subtotal", "Subtotal", "text-right")}
+                {sortHeader("status", "Status", "hidden sm:table-cell")}
+                {sortHeader("claim", "Claim", "hidden sm:table-cell")}
+                {sessionFilter === "all" && sortHeader("session", "Session", "hidden md:table-cell")}
                 <th className="text-right">
                   <span className="sr-only">Actions</span>
                 </th>

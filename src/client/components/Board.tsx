@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { CampaignView } from "../../shared/types.ts";
 import { Money } from "./Money.tsx";
-import { LootTable, type StatusFilter } from "./LootTable.tsx";
+import { DEFAULT_SORT, LootTable, type LootSort, type StatusFilter } from "./LootTable.tsx";
 import { CharacterTable } from "./CharacterTable.tsx";
 import { SessionTable } from "./SessionTable.tsx";
 import { SplitHistory } from "./SplitHistory.tsx";
@@ -28,6 +28,7 @@ export function CampaignBoard({
   const [sessionFilter, setSessionFilter] = useState<number | "all">("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pool");
   const [search, setSearch] = useState("");
+  const [lootSort, setLootSort] = useState<LootSort>(DEFAULT_SORT);
   const { campaign, pool } = view;
   const me = mode.kind === "player" ? view.characters.find((c) => c.id === mode.characterId) : undefined;
   // Petty cash above its hold joins the split; a shortfall is kept back.
@@ -142,6 +143,8 @@ export function CampaignBoard({
               onStatusFilter={setStatusFilter}
               search={search}
               onSearch={setSearch}
+              sort={lootSort}
+              onSort={setLootSort}
             />
           )}
           {tab === "characters" && <CharacterTable view={view} mode={mode} />}

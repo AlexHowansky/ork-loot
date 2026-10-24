@@ -196,7 +196,15 @@ they have claimed from the pool.
   shows the session's date. Hovering over the date shows that session's title
   and notes.
 
-* The loot table is sorted by item name, A to Z.
+* The loot table is sorted by item name, A to Z, until another column is
+  chosen. Clicking any column header but the actions sorts the table by
+  it, ascending; clicking it again reverses the order. An arrow marks the
+  sorted column and its direction. Status sorts as available, party,
+  claimed, bought, sold, abandoned, and Session by the session's date.
+  Blank cells (no value, no claimant, or a value hidden from players
+  because the item is unidentified) sort last either way. Ties fall back
+  to the item name. The choice lasts while the campaign page is open,
+  across tab changes.
 
 * The loot table filters by session and by status: "Pool" (available, party
   and claimed), "Available" (not yet claimed), "Gone" (sold, bought and

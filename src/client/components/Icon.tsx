@@ -33,4 +33,7 @@ export {
   faTag,
   faTrashCan,
   faMagnifyingGlass,
+  faSort,
+  faSortDown,
+  faSortUp,
 } from "@fortawesome/free-solid-svg-icons";
