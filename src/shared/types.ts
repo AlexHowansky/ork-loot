@@ -68,6 +68,8 @@ export interface CharacterView {
   joinCode?: string | null;
   /** GM only: whether a player has taken this character. */
   hasPlayer?: boolean;
+  /** GM only: whether that player has the character open right now. */
+  online?: boolean;
 }
 
 export interface SessionView {

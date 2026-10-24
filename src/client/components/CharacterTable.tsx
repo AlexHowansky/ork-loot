@@ -6,7 +6,7 @@ import { Money } from "./Money.tsx";
 import { CharacterForm } from "./SimpleForms.tsx";
 import { useConfirm } from "./Confirm.tsx";
 import { useToast } from "./Toast.tsx";
-import { Icon, faArrowsRotate, faCircleCheck, faCopy, faPen, faPlus, faTrash } from "./Icon.tsx";
+import { Icon, faArrowsRotate, faCircleCheck, faCopy, faPen, faPlus, faTrash, faWifi } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
 const pretty = (code: string) => `${code.slice(0, 5)}-${code.slice(5)}`;
@@ -143,8 +143,18 @@ export function CharacterTable({
                             </button>
                           </span>
                         ) : c.hasPlayer ? (
-                          <span className="badge badge-sm badge-success badge-soft">
-                            <Icon icon={faCircleCheck} /> Joined
+                          <span className="inline-flex items-center gap-1">
+                            <span className="badge badge-sm badge-success badge-soft">
+                              <Icon icon={faCircleCheck} /> Joined
+                            </span>
+                            {c.online && (
+                              <span
+                                className="badge badge-sm badge-info badge-soft"
+                                title={`${c.name}'s player has the campaign open now.`}
+                              >
+                                <Icon icon={faWifi} /> Online
+                              </span>
+                            )}
                           </span>
                         ) : (
                           <span className="text-base-content/60 text-sm">No code</span>

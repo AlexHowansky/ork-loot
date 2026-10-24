@@ -171,13 +171,16 @@ export function listCampaigns(db: Db, gmId: string): CampaignSummary[] {
 }
 
 /**
- * Everything the campaign board shows. Join codes and player links are
- * included only for the GM.
+ * Everything the campaign board shows. Join codes, player links and who is
+ * online are included only for the GM.
  */
 export function campaignView(
   db: Db,
   c: Campaign,
-  opts: { forGm: boolean },
+  opts: {
+    forGm: boolean;
+    isOnline?: (ch: { id: string; playerId: number | null }) => boolean;
+  },
 ): CampaignView {
   const chars = db
     .select()
@@ -209,7 +212,11 @@ export function campaignView(
         debt: a.debt,
         net: a.net,
         ...(opts.forGm
-          ? { joinCode: ch.joinCode, hasPlayer: ch.playerId !== null }
+          ? {
+              joinCode: ch.joinCode,
+              hasPlayer: ch.playerId !== null,
+              online: opts.isOnline?.(ch) ?? false,
+            }
           : {}),
       };
     }),

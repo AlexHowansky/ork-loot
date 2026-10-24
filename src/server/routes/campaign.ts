@@ -36,12 +36,15 @@ export function campaignRoutes(r: Router) {
 
   r.get("/api/campaigns/:id", (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
-    return campaignView(ctx.db, c, { forGm: true });
+    return campaignView(ctx.db, c, {
+      forGm: true,
+      isOnline: (ch) => ctx.events.isOnline(ch.id, ch.playerId),
+    });
   });
 
   r.get("/api/campaigns/:id/events", (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
-    return sseResponse(ctx, c.id);
+    return sseResponse(ctx, c.id, { gm: true });
   });
 
   r.patch("/api/campaigns/:id", async (ctx) => {

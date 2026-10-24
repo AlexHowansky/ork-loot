@@ -36,4 +36,5 @@ export {
   faSort,
   faSortDown,
   faSortUp,
+  faWifi,
 } from "@fortawesome/free-solid-svg-icons";

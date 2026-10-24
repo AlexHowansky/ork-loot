@@ -112,6 +112,11 @@ they have claimed from the pool.
   Creating a new code signs out the character's current player at once;
   whoever redeems the new code takes the character over.
 
+* The GM's characters table shows a "Joined" pill for each character a
+  player has taken, and beside it an "Online" pill while that player has
+  the character's campaign page open in a browser. It appears and goes
+  within moments, without reloading. Players don't see who is online.
+
 * A character who has taken part in a loot split can't be deleted, so split
   history stays intact. Deleting any other character returns their claims to
   the pool.

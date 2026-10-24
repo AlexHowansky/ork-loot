@@ -20,7 +20,10 @@ export function playerRoutes(r: Router) {
 
   r.get("/api/play/:id/events", (ctx) => {
     const me = requireOwnedCharacter(ctx, uuidParam(ctx));
-    return sseResponse(ctx, me.campaignId);
+    return sseResponse(ctx, me.campaignId, {
+      gm: false,
+      presence: { characterId: me.id, playerId: me.playerId! },
+    });
   });
 
   r.post("/api/play/:id/claim", async (ctx) => {

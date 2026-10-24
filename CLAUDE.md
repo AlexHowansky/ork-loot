@@ -21,9 +21,11 @@ The product specification (terms and features) is in @SPEC.md.
   Events carry no campaign data, only the origin tab's `X-Client-Id`, and
   each browser refetches its own view. A handler may also pass a
   `LiveNotice` (`ctx.changed(campaignId, notice)`) naming only what every
-  view already shows; other tabs show it as a toast. The bus is in memory,
-  so the server runs as a single process; more than one would need a
-  shared bus.
+  view already shows; other tabs show it as a toast. The bus also counts
+  each player's open streams per character, which is what makes a
+  character "Online"; changes to that reach only GM streams. The bus is
+  in memory, so the server runs as a single process; more than one would
+  need a shared bus.
 
 * Use a SQL abstraction layer for local storage. For now, we'll use SQLite in
   test and prod, but we might switch to another database later. Migrations

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { addGm, Client, makeApp, referenceCalls, setReferenceReply } from "./helpers.ts";
 import { campaign } from "../src/server/db/schema.ts";
-import type { CampaignView, LiveNotice, PlayView } from "../src/shared/types.ts";
+import type { CampaignView, CharacterView, LiveNotice, PlayView } from "../src/shared/types.ts";
 
 let ctx: ReturnType<typeof makeApp>;
 let gmA: Client;
@@ -1061,6 +1061,51 @@ describe("live updates", () => {
     const stranger = new Client(ctx.app, "10.0.0.3");
     expect((await stranger.raw("GET", `/api/play/${characterIds[0]}/events`)).status).toBe(401);
     expect(ctx.app.events.count(campaignId)).toBe(0);
+  });
+
+  test("the GM sees which characters' players have them open", async () => {
+    const { campaignId, view } = await seed();
+    const first = (await view()).characters[0]!;
+    const { player, res } = await join(first.joinCode!);
+    const online = async () => (await view()).characters.find((c) => c.id === first.id)!.online;
+    expect(await online()).toBe(false);
+
+    const gmStream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    const playerStream = await openStream(player, `/api/play/${res.body.characterId}/events`);
+    expect(await gmStream.next()).toBeNull();
+    expect(await online()).toBe(true);
+    // A second tab for the same character keeps it online when one closes.
+    const second = await openStream(player, `/api/play/${res.body.characterId}/events`);
+    second.close();
+    expect(await online()).toBe(true);
+    playerStream.close();
+    expect(await gmStream.next()).toBeNull();
+    expect(await online()).toBe(false);
+    gmStream.close();
+  });
+
+  test("only GM streams hear who is online", async () => {
+    const { campaignId, view } = await seed();
+    const [a, b] = (await view()).characters as [CharacterView, CharacterView];
+    const watcher = await join(a.joinCode!);
+    const other = await join(b.joinCode!, "10.0.0.9");
+    const watching = await openStream(watcher.player, `/api/play/${a.id}/events`);
+    const stream = await openStream(other.player, `/api/play/${b.id}/events`);
+    await expect(watching.next()).rejects.toThrow("no event");
+    const played = (await other.player.get(`/api/play/${b.id}`)).body as PlayView;
+    expect(played.characters.every((c) => c.online === undefined)).toBe(true);
+    stream.close();
+    watching.close();
+  });
+
+  test("a signed-out player's open stream doesn't count", async () => {
+    const { view } = await seed();
+    const first = (await view()).characters[0]!;
+    const { player } = await join(first.joinCode!);
+    const stream = await openStream(player, `/api/play/${first.id}/events`);
+    await gmA.post(`/api/characters/${first.id}/code`);
+    expect((await view()).characters[0]!.online).toBe(false);
+    stream.close();
   });
 
   test("a rejected change announces nothing", async () => {
