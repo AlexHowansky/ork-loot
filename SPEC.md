@@ -70,6 +70,11 @@ they have claimed from the pool.
   places. The decimal places are locked once the campaign has any loot or
   any petty cash ledger entries.
 
+* The campaign form lays its fields out in two columns (one on narrow
+  screens). The left holds name, game system, currency, decimal places and
+  base reference URL; the right holds start date, petty cash hold, allow
+  debt and background image.
+
 * The campaign form has a game system selector, a shortcut that fills in the
   currency label, decimal places and base reference URL; the choice itself
   isn't stored, and it shows "Custom" when the fields match no system.
