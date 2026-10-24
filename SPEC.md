@@ -218,6 +218,11 @@ they have claimed from the pool.
   with the other filters, and Escape clears it. Following a session's link
   to its loot clears the search and the character filter.
 
+* Each character in the characters table has a "Show loot" button, for the
+  GM and players alike. It opens the Loot tab showing everything that
+  character has claimed or bought, from all sessions and of every status,
+  with the search cleared.
+
 * Item statuses are as follows:
     * Available: This item is in the current loot pool, is free to be claimed,
                  and will be sold during the next split. This is the default for

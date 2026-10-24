@@ -11,7 +11,15 @@ import type { Mode } from "./Board.tsx";
 
 const pretty = (code: string) => `${code.slice(0, 5)}-${code.slice(5)}`;
 
-export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode }) {
+export function CharacterTable({
+  view,
+  mode,
+  onShowLoot,
+}: {
+  view: CampaignView;
+  mode: Mode;
+  onShowLoot: (characterId: string) => void;
+}) {
   const { campaign } = view;
   const [editing, setEditing] = useState<CharacterView | "new" | null>(null);
   const refresh = useRefresh();
@@ -91,11 +99,9 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
                 {owed && <th className="text-right">Debt</th>}
                 <th className="text-right">Payout now</th>
                 {gm && <th>Player</th>}
-                {gm && (
-                  <th className="text-right">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                )}
+                <th className="text-right">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -145,33 +151,38 @@ export function CharacterTable({ view, mode }: { view: CampaignView; mode: Mode 
                         )}
                       </td>
                     )}
-                    {gm && (
-                      <td className="text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={() => newCode(c)}
-                        >
-                          <Icon icon={faArrowsRotate} /> New code
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs btn-square"
-                          aria-label={`Edit ${c.name}`}
-                          onClick={() => setEditing(c)}
-                        >
-                          <Icon icon={faPen} />
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs btn-square"
-                          aria-label={`Delete ${c.name}`}
-                          onClick={() => remove(c)}
-                        >
-                          <Icon icon={faTrash} />
-                        </button>
-                      </td>
-                    )}
+                    <td className="text-right whitespace-nowrap">
+                      <button type="button" className="btn btn-ghost btn-xs" onClick={() => onShowLoot(c.id)}>
+                        Show loot
+                      </button>
+                      {gm && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => newCode(c)}
+                          >
+                            <Icon icon={faArrowsRotate} /> New code
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs btn-square"
+                            aria-label={`Edit ${c.name}`}
+                            onClick={() => setEditing(c)}
+                          >
+                            <Icon icon={faPen} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-xs btn-square"
+                            aria-label={`Delete ${c.name}`}
+                            onClick={() => remove(c)}
+                          >
+                            <Icon icon={faTrash} />
+                          </button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 );
               })}

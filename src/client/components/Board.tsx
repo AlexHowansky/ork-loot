@@ -150,7 +150,19 @@ export function CampaignBoard({
               onSort={setLootSort}
             />
           )}
-          {tab === "characters" && <CharacterTable view={view} mode={mode} />}
+          {tab === "characters" && (
+            <CharacterTable
+              view={view}
+              mode={mode}
+              onShowLoot={(id) => {
+                setClaimFilter(id);
+                setSessionFilter("all");
+                setStatusFilter("all");
+                setSearch("");
+                setTab("loot");
+              }}
+            />
+          )}
           {tab === "sessions" && (
             <SessionTable
               view={view}
