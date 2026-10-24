@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Link, Outlet, useNavigate } from "react-router";
+import { Link, Outlet, useMatch, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "../api.ts";
-import { useMe } from "../queries.ts";
+import { useMe, usePlay } from "../queries.ts";
 import { applyTheme, storedTheme, type ThemeChoice } from "../theme.ts";
 import { useToast } from "./Toast.tsx";
 import { Menu } from "./Menu.tsx";
@@ -14,6 +14,7 @@ import {
   faKey,
   faMoon,
   faSun,
+  faTriangleExclamation,
   faUser,
 } from "./Icon.tsx";
 
@@ -40,11 +41,34 @@ function ThemeButton() {
   );
 }
 
+/**
+ * Warns a player whose projected payout is negative in a campaign without
+ * debt, since the GM can't run a split until it's positive again. It reads
+ * the play view the page itself has already loaded.
+ */
+function DebtWarning({ characterId }: { characterId: string }) {
+  const { data: view } = usePlay(characterId);
+  const me = view?.characters.find((c) => c.id === view.me.id);
+  if (!view || view.campaign.allowDebt || !me || me.net >= 0) return null;
+  const message =
+    "Debt is not allowed in this campaign, so the GM will be unable to " +
+    "perform a loot split until your payout is positive.";
+  return (
+    <span className="tooltip tooltip-bottom tooltip-error">
+      <span className="tooltip-content w-64 text-left">{message}</span>
+      <button type="button" className="btn btn-ghost btn-sm btn-square text-error" aria-label={message}>
+        <Icon icon={faTriangleExclamation} />
+      </button>
+    </span>
+  );
+}
+
 export function Layout() {
   const { data: me } = useMe();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const toast = useToast();
+  const playing = useMatch("/play/:id")?.params.id;
 
   async function logout() {
     try {
@@ -65,6 +89,7 @@ export function Layout() {
           </Link>
         </div>
         <div className="navbar-end gap-1">
+          {playing && <DebtWarning characterId={playing} />}
           {me && me.characters.length > 0 && (
             <Menu
               buttonClass="btn btn-ghost btn-sm"

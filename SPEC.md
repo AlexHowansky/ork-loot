@@ -281,6 +281,11 @@ they have claimed from the pool.
   Debt column, and the split history a "Debt in" column, whenever there
   is any; a player who owes sees their debt on the board.
 
+* When a campaign doesn't allow debt and a player's projected payout is
+  negative, their nav bar shows a warning icon. Hovering over it, or
+  focusing it, explains that debt isn't allowed and the GM can't run a
+  split until their payout is positive.
+
 * The GM sees a preview of the split before running it. Every split is kept
   in a history showing each character's share, claims and payout.
 
