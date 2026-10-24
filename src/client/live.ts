@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
-import { CLIENT_ID } from "./api.ts";
+import { api, CLIENT_ID } from "./api.ts";
+import { keys } from "./queries.ts";
 import { useToast } from "./components/Toast.tsx";
-import type { LiveNotice } from "../shared/types.ts";
+import type { LiveNotice, Me } from "../shared/types.ts";
 
 /** A toast describing what someone in another tab did. */
 export function noticeText(n: LiveNotice): string {
@@ -22,11 +24,14 @@ export function noticeText(n: LiveNotice): string {
  * event refetches them, except for changes this tab made itself, which it
  * already refetches. Claims and releases from elsewhere also show a toast.
  * EventSource reconnects on its own; a reconnect refetches too, in case
- * something changed in between.
+ * something changed in between. When the GM is signed out everywhere, as
+ * by a password reset, the stream says so before it ends: a browser that
+ * signed back in carries on, and any other goes back to the start.
  */
 export function useLiveUpdates(url: string, queryKeys: QueryKey[]) {
   const qc = useQueryClient();
   const toast = useToast();
+  const navigate = useNavigate();
   const keysRef = useRef(queryKeys);
   keysRef.current = queryKeys;
 
@@ -54,6 +59,20 @@ export function useLiveUpdates(url: string, queryKeys: QueryKey[]) {
       refresh();
       for (const n of notices) toast(noticeText(n), "info");
     });
+    source.addEventListener("signedout", async () => {
+      let me: Me | null = null;
+      try {
+        me = await qc.fetchQuery({ queryKey: keys.me, queryFn: () => api.get<Me>("/api/auth/me") });
+      } catch {
+        // Can't tell; the reconnect will answer it.
+      }
+      if (me && !me.gm) {
+        source.close();
+        qc.clear();
+        navigate("/");
+        toast("You've been signed out because your password was changed.", "info");
+      }
+    });
     return () => source.close();
-  }, [url, qc, toast]);
+  }, [url, qc, toast, navigate]);
 }

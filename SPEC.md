@@ -72,7 +72,9 @@ they have claimed from the pool.
   addresses belong to GMs. A GM's address is emailed a link that works once
   and for one hour; asking again replaces the earlier link. The link opens a
   page to choose a new password (at least 10 characters, typed twice).
-  Saving it signs the GM out everywhere else and signs them in.
+  Saving it signs the GM out everywhere else and signs them in. Pages they
+  still have open in other browsers go back to the start at once, saying
+  why.
 
 * GMs can view, create, edit, and delete their own campaigns.
 

@@ -12,6 +12,10 @@ interface Subscriber {
   fn: Listener;
   /** Hears GM-only changes too, such as who is online. */
   gm: boolean;
+  /** The GM whose login opened it, so it can be ended with their logins. */
+  gmId?: string;
+  /** Ends the stream when its GM is signed out everywhere. */
+  end?: () => void;
 }
 
 /** A player's open stream, which marks their character online. */
@@ -45,11 +49,11 @@ export function createEventBus() {
     subscribe(
       campaignId: string,
       fn: Listener,
-      opts: { gm?: boolean } = {},
+      opts: { gm?: boolean; gmId?: string; end?: () => void } = {},
     ): () => void {
       let set = listeners.get(campaignId);
       if (!set) listeners.set(campaignId, (set = new Set()));
-      const sub = { fn, gm: opts.gm ?? false };
+      const sub: Subscriber = { fn, gm: opts.gm ?? false, gmId: opts.gmId, end: opts.end };
       set.add(sub);
       return () => {
         set.delete(sub);
@@ -57,6 +61,18 @@ export function createEventBus() {
       };
     },
     publish,
+    /**
+     * Ends every stream a GM has open, for when all their logins have
+     * been ended, so no page keeps listening on a login that is gone.
+     */
+    signOut(gmId: string): number {
+      const ending: (() => void)[] = [];
+      for (const set of listeners.values()) {
+        for (const s of set) if (s.gmId === gmId && s.end) ending.push(s.end);
+      }
+      for (const end of ending) end();
+      return ending.length;
+    },
     count(campaignId: string): number {
       return listeners.get(campaignId)?.size ?? 0;
     },
@@ -105,12 +121,13 @@ const PING_MS = 25_000;
  * A Server-Sent Events stream that says "changed" whenever the campaign
  * does. It carries no campaign data: each browser refetches its own view,
  * so nothing reaches a player that their normal view wouldn't show. The
- * only extra is a short notice of claims and releases, for a toast.
+ * only extra is a short notice of claims and releases, for a toast. A
+ * GM's stream ends with "signedout" when their logins are all ended.
  */
 export function sseResponse(
   ctx: Ctx,
   campaignId: string,
-  opts: { gm: true } | { gm: false; presence: Presence },
+  opts: { gm: true; gmId: string } | { gm: false; presence: Presence },
 ): Response {
   ctx.keepOpen();
   const encoder = new TextEncoder();
@@ -129,7 +146,17 @@ export function sseResponse(
         campaignId,
         (origin, notices) =>
           send(`event: changed\ndata: ${JSON.stringify({ origin, notices })}\n\n`),
-        { gm: opts.gm },
+        opts.gm
+          ? {
+              gm: true,
+              gmId: opts.gmId,
+              end: () => {
+                // Tells the page why, before the browser tries to reconnect.
+                send("event: signedout\ndata: {}\n\n");
+                cleanup();
+              },
+            }
+          : {},
       );
       const leave = opts.gm ? () => {} : ctx.events.arrive(campaignId, opts.presence);
       const ping = setInterval(() => send(": ping\n\n"), PING_MS);

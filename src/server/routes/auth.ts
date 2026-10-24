@@ -117,7 +117,8 @@ export function authRoutes(r: Router) {
     }
     // Every login, this browser's included, was ended; sign it back in.
     startLogin(ctx, gmId);
-    logger.info("password reset", { requestId: ctx.requestId, gmId });
+    const streams = ctx.events.signOut(gmId);
+    logger.info("password reset", { requestId: ctx.requestId, gmId, streams });
     const row = ctx.db.select().from(gm).where(eq(gm.id, gmId)).get()!;
     return { gm: { id: row.id, email: row.email }, characters: me(ctx).characters };
   });

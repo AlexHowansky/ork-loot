@@ -1057,7 +1057,8 @@ describe("live updates", () => {
 
   /**
    * Opens an event stream; `next` resolves with the next "changed" origin,
-   * and `nextEvent` with the whole event.
+   * `nextEvent` with the whole event, and `rest` with everything up to the
+   * stream's end.
    */
   async function openStream(client: Client, path: string) {
     const abort = new AbortController();
@@ -1078,12 +1079,20 @@ describe("live updates", () => {
         buf += decoder.decode(value);
       }
     }
+    async function rest(): Promise<string> {
+      for (;;) {
+        const { value, done } = await reader!.read();
+        if (done) return buf;
+        buf += decoder.decode(value);
+      }
+    }
     const timeout = () =>
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error("no event")), 1000));
     return {
       res,
       next: () => Promise.race([nextEvent().then((e) => e.origin), timeout()]),
       nextEvent: () => Promise.race([nextEvent(), timeout()]),
+      rest: () => Promise.race([rest(), timeout()]),
       close: () => abort.abort(),
     };
   }
@@ -1157,6 +1166,29 @@ describe("live updates", () => {
     expect(ctx.app.events.count(campaignId)).toBe(1);
     stream.close();
     expect(ctx.app.events.count(campaignId)).toBe(0);
+  });
+
+  test("a password reset ends the GM's streams, and only theirs", async () => {
+    const { campaignId, view } = await seed();
+    const { player, res } = await join((await view()).characters[0]!.joinCode!);
+    const gmStream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    const playerStream = await openStream(player, `/api/play/${res.body.characterId}/events`);
+    const gmB = new Client(ctx.app, "10.0.0.2");
+    await gmB.login("bob@example.com");
+    const bobs = (await gmB.post("/api/campaigns", campaignBody)).body;
+    const bobStream = await openStream(gmB, `/api/campaigns/${bobs.id}/events`);
+    expect(ctx.app.events.count(campaignId)).toBe(2);
+
+    await new Client(ctx.app).post("/api/auth/forgot", { email: "alice@example.com" });
+    const link = sentMail.at(-1)!.text.match(/https?:\/\/\S+/)![0];
+    const token = link.slice(link.indexOf("#") + 1);
+    expect((await new Client(ctx.app).post("/api/auth/reset", { token, password: "a brand new password" })).status).toBe(200);
+
+    expect(await gmStream.rest()).toContain("event: signedout");
+    expect(ctx.app.events.count(campaignId)).toBe(1);
+    expect(ctx.app.events.count(bobs.id)).toBe(1);
+    playerStream.close();
+    bobStream.close();
   });
 
   test("streams need access to the campaign", async () => {

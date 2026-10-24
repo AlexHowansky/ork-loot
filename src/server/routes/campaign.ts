@@ -43,8 +43,9 @@ export function campaignRoutes(r: Router) {
   });
 
   r.get("/api/campaigns/:id/events", (ctx) => {
-    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
-    return sseResponse(ctx, c.id, { gm: true });
+    const gm = requireGm(ctx);
+    const c = ownedCampaign(ctx.db, gm.id, uuidParam(ctx));
+    return sseResponse(ctx, c.id, { gm: true, gmId: gm.id });
   });
 
   r.patch("/api/campaigns/:id", async (ctx) => {
