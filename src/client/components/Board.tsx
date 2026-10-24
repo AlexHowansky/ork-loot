@@ -34,8 +34,8 @@ export function CampaignBoard({
   const tabs: [Tab, string, number?][] = [
     ["loot", "Loot", view.loot.length],
     ["sessions", "Sessions", view.sessions.length],
-    ["splits", "Splits", view.splits.length],
     ["characters", "Characters", view.characters.length],
+    ["splits", "Splits", view.splits.length],
   ];
 
   return (

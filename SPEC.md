@@ -118,7 +118,7 @@ they have claimed from the pool.
   characters, sessions), without reloading the page.
 
 * The campaign page, for the GM and players alike, shows its contents in tabs
-  in this order: "Loot", "Sessions", "Splits" and "Characters". Loot is shown
+  in this order: "Loot", "Sessions", "Characters" and "Splits". Loot is shown
   first.
 
 * The GM can view, create, edit, and delete sessions in their campaigns.
