@@ -44,7 +44,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <button
                 type="button"
                 className={`btn ${pending.danger ? "btn-error" : "btn-primary"}`}
-                autoFocus
+                data-autofocus
                 onClick={() => finish(true)}
               >
                 {pending.confirmLabel}

@@ -72,7 +72,7 @@ export function CampaignForm({
         <Field label="Name" error={s.fields.name}>
           <input
             className={withError("input w-full", s.fields.name)}
-            autoFocus
+            data-autofocus
             value={name}
             onChange={(e) => setName(e.target.value)}
           />

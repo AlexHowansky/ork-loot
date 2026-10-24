@@ -44,7 +44,7 @@ export function CharacterForm({
       <div className="w-72 max-w-full">
         <FormError message={s.hasFieldErrors ? null : s.message} />
         <Field label="Name" error={s.fields.name}>
-          <input className={withError("input w-full", s.fields.name)} autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          <input className={withError("input w-full", s.fields.name)} data-autofocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <Field label="Shares" error={s.fields.shares} hint="How many shares of each split this character gets.">
           <input
@@ -105,7 +105,7 @@ export function SessionForm({
           <input type="date" className={withError("input w-full", s.fields.date)} value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
         <Field label="Title" error={s.fields.title}>
-          <input className="input w-full" placeholder="Optional" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input className="input w-full" placeholder="Optional" data-autofocus value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
         <Field label="Notes" error={s.fields.notes}>
           <textarea className="textarea w-full" rows={3} placeholder="Optional" value={notes} onChange={(e) => setNotes(e.target.value)} />
@@ -172,7 +172,7 @@ export function ClaimForm({
             <select
               className={withError("select w-full", s.fields.characterId)}
               value={forId}
-              autoFocus
+              data-autofocus
               onChange={(e) => setForId(e.target.value)}
             >
               {characters.map((c) => (
@@ -193,7 +193,7 @@ export function ClaimForm({
               min={1}
               max={item.quantity}
               step={1}
-              autoFocus={!characters}
+              data-autofocus={characters ? undefined : true}
               className={withError("input w-28", qtyValid ? undefined : "x")}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}

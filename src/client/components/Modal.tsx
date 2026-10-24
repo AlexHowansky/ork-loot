@@ -30,6 +30,10 @@ export function Modal({
     const dialog = ref.current;
     if (!dialog) return;
     dialog.showModal();
+    // React's autoFocus fires while the dialog is still closed, and
+    // showModal() then focuses the close control, so focus the field that
+    // asked for it once the dialog is open.
+    dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     const handle = (e: Event) => {
       e.preventDefault();
       close.current();
