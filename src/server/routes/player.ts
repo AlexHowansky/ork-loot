@@ -3,6 +3,7 @@ import { campaign, character } from "../db/schema.ts";
 import { requireOwnedCharacter } from "../lib/auth.ts";
 import { notFound } from "../lib/errors.ts";
 import { readJson, uuidParam, type Router } from "../lib/http.ts";
+import { sseResponse } from "../lib/events.ts";
 import { logger } from "../lib/logger.ts";
 import { campaignView } from "../domain/campaign.ts";
 import { claimLoot, releaseLoot } from "../domain/loot.ts";
@@ -17,10 +18,16 @@ export function playerRoutes(r: Router) {
     return { ...campaignView(ctx.db, c, { forGm: false }), me: { id: me.id, name: me.name } };
   });
 
+  r.get("/api/play/:id/events", (ctx) => {
+    const me = requireOwnedCharacter(ctx, uuidParam(ctx));
+    return sseResponse(ctx, me.campaignId);
+  });
+
   r.post("/api/play/:id/claim", async (ctx) => {
     const me = requireOwnedCharacter(ctx, uuidParam(ctx));
     const { lootId, quantity } = await readJson(ctx, claimSchema);
     const row = claimLoot(ctx.db, me, lootId, quantity);
+    ctx.changed(me.campaignId);
     logger.info("loot claimed", {
       requestId: ctx.requestId,
       characterId: me.id,
@@ -34,6 +41,7 @@ export function playerRoutes(r: Router) {
     const me = requireOwnedCharacter(ctx, uuidParam(ctx));
     const { lootId } = await readJson(ctx, releaseSchema);
     releaseLoot(ctx.db, me, lootId);
+    ctx.changed(me.campaignId);
     logger.info("claim released", { requestId: ctx.requestId, characterId: me.id, lootId });
     return { ok: true };
   });
@@ -42,6 +50,7 @@ export function playerRoutes(r: Router) {
   r.delete("/api/play/:id", (ctx) => {
     const me = requireOwnedCharacter(ctx, uuidParam(ctx));
     ctx.db.update(character).set({ playerId: null }).where(eq(character.id, me.id)).run();
+    ctx.changed(me.campaignId);
     logger.info("character left", { requestId: ctx.requestId, characterId: me.id });
     return { ok: true };
   });

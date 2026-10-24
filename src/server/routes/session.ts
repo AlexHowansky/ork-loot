@@ -29,6 +29,7 @@ export function sessionRoutes(r: Router) {
       .values({ ...input, campaignId: c.id })
       .returning()
       .get();
+    ctx.changed(c.id);
     logger.info("session created", { requestId: ctx.requestId, sessionId: row.id });
     return { id: row.id };
   });
@@ -37,12 +38,14 @@ export function sessionRoutes(r: Router) {
     const { session: s } = ownedSession(ctx.db, requireGm(ctx).id, idParam(ctx));
     const input = await readJson(ctx, sessionSchema);
     ctx.db.update(session).set(input).where(eq(session.id, s.id)).run();
+    ctx.changed(s.campaignId);
     return { id: s.id };
   });
 
   r.delete("/api/sessions/:id", (ctx) => {
     const { session: s } = ownedSession(ctx.db, requireGm(ctx).id, idParam(ctx));
     ctx.db.delete(session).where(eq(session.id, s.id)).run();
+    ctx.changed(s.campaignId);
     logger.info("session deleted", { requestId: ctx.requestId, sessionId: s.id });
     return { ok: true };
   });

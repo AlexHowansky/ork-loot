@@ -61,6 +61,7 @@ export function characterRoutes(r: Router) {
       .values({ ...input, campaignId: c.id, joinCode: freshCode(ctx.db) })
       .returning()
       .get();
+    ctx.changed(c.id);
     logger.info("character created", { requestId: ctx.requestId, characterId: row.id });
     return { id: row.id };
   });
@@ -79,6 +80,7 @@ export function characterRoutes(r: Router) {
         .get()!;
       return updated.shares === 0 ? releaseAllClaims(tx, updated) : 0;
     });
+    ctx.changed(ch.campaignId);
     if (released > 0) {
       logger.info("claims released for share-less character", {
         requestId: ctx.requestId,
@@ -98,6 +100,7 @@ export function characterRoutes(r: Router) {
       .set({ joinCode, playerId: null })
       .where(eq(character.id, ch.id))
       .run();
+    ctx.changed(ch.campaignId);
     logger.info("join code regenerated", {
       requestId: ctx.requestId,
       characterId: ch.id,
@@ -132,6 +135,7 @@ export function characterRoutes(r: Router) {
         .run();
       tx.delete(character).where(eq(character.id, ch.id)).run();
     });
+    ctx.changed(ch.campaignId);
     logger.info("character deleted", { requestId: ctx.requestId, characterId: ch.id });
     return { ok: true };
   });

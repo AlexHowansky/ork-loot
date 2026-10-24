@@ -68,6 +68,7 @@ export function lootRoutes(r: Router) {
       .values({ ...input, characterId, sessionId: s.id })
       .returning()
       .get();
+    ctx.changed(s.campaignId);
     logger.info("loot added", { requestId: ctx.requestId, lootId: row.id });
     return lootView(row);
   });
@@ -88,6 +89,7 @@ export function lootRoutes(r: Router) {
       .where(eq(loot.id, item.id))
       .returning()
       .get();
+    ctx.changed(campaignId);
     logger.info("loot updated", { requestId: ctx.requestId, lootId: item.id, status });
     return lootView(row!);
   });
@@ -98,6 +100,7 @@ export function lootRoutes(r: Router) {
     const { characterId, quantity } = await readJson(ctx, gmClaimSchema);
     const who = campaignCharacter(ctx.db, campaignId, characterId);
     const row = claimLoot(ctx.db, who, item.id, quantity, true);
+    ctx.changed(campaignId);
     logger.info("loot claimed by gm", {
       requestId: ctx.requestId,
       characterId: who.id,
@@ -115,6 +118,7 @@ export function lootRoutes(r: Router) {
     }
     const who = campaignCharacter(ctx.db, campaignId, item.characterId);
     releaseLoot(ctx.db, who, item.id);
+    ctx.changed(campaignId);
     logger.info("claim released by gm", {
       requestId: ctx.requestId,
       characterId: who.id,
@@ -124,8 +128,9 @@ export function lootRoutes(r: Router) {
   });
 
   r.delete("/api/loot/:id", (ctx) => {
-    const { loot: item } = ownedLoot(ctx.db, requireGm(ctx).id, idParam(ctx));
+    const { loot: item, campaignId } = ownedLoot(ctx.db, requireGm(ctx).id, idParam(ctx));
     ctx.db.delete(loot).where(eq(loot.id, item.id)).run();
+    ctx.changed(campaignId);
     logger.info("loot deleted", { requestId: ctx.requestId, lootId: item.id });
     return { ok: true };
   });

@@ -14,6 +14,14 @@ The product specification (terms and features) is in @SPEC.md.
   a JSON API under `/api`. Input is validated with zod schemas shared by the
   client and server (`src/shared`).
 
+* Open campaign pages stay in sync through Server-Sent Events, never
+  client-side polling. Every handler that changes a campaign calls
+  `ctx.changed(campaignId)`; once the request succeeds, the in-process bus
+  (`src/server/lib/events.ts`) tells that campaign's streams it changed.
+  Events carry no data, only the origin tab's `X-Client-Id`, and each
+  browser refetches its own view. The bus is in memory, so the server runs
+  as a single process; more than one would need a shared bus.
+
 * Use a SQL abstraction layer for local storage. For now, we'll use SQLite in
   test and prod, but we might switch to another database later. Migrations
   live in `drizzle/` and are applied on startup.

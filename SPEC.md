@@ -100,6 +100,10 @@ they have claimed from the pool.
 * Players see the whole campaign: every loot item, every character's shares
   and projected payout, and the split history. Join codes are GM-only.
 
+* Every browser showing a campaign, the GM's and players' alike, updates
+  within moments when anything in it changes (loot, claims, splits,
+  characters, sessions), without reloading the page.
+
 * The campaign page, for the GM and players alike, shows its contents in tabs
   in this order: "Loot", "Sessions", "Splits" and "Characters". Loot is shown
   first.

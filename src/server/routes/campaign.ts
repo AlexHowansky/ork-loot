@@ -3,6 +3,7 @@ import { campaign, loot, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { badRequest } from "../lib/errors.ts";
 import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
+import { sseResponse } from "../lib/events.ts";
 import { logger } from "../lib/logger.ts";
 import { RateLimiter } from "../lib/rate-limit.ts";
 import { searchReference } from "../lib/reference-search.ts";
@@ -38,6 +39,11 @@ export function campaignRoutes(r: Router) {
     return campaignView(ctx.db, c, { forGm: true });
   });
 
+  r.get("/api/campaigns/:id/events", (ctx) => {
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
+    return sseResponse(ctx, c.id);
+  });
+
   r.patch("/api/campaigns/:id", async (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, campaignSchema);
@@ -68,6 +74,7 @@ export function campaignRoutes(r: Router) {
       .where(eq(campaign.id, c.id))
       .returning()
       .get();
+    ctx.changed(c.id);
     return campaignInfo(row!);
   });
 
@@ -83,6 +90,7 @@ export function campaignRoutes(r: Router) {
   r.delete("/api/campaigns/:id", async (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     ctx.db.delete(campaign).where(eq(campaign.id, c.id)).run();
+    ctx.changed(c.id);
     await removeImage(ctx.config.uploadDir, c.backgroundImage);
     logger.info("campaign deleted", { requestId: ctx.requestId, campaignId: c.id });
     return { ok: true };
@@ -100,6 +108,7 @@ export function campaignRoutes(r: Router) {
     if (!(file instanceof File)) throw badRequest("Choose an image to upload.");
     const name = await saveImage(ctx.config.uploadDir, file);
     ctx.db.update(campaign).set({ backgroundImage: name }).where(eq(campaign.id, c.id)).run();
+    ctx.changed(c.id);
     await removeImage(ctx.config.uploadDir, c.backgroundImage);
     return { backgroundImage: name };
   });
@@ -107,6 +116,7 @@ export function campaignRoutes(r: Router) {
   r.delete("/api/campaigns/:id/image", async (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     ctx.db.update(campaign).set({ backgroundImage: null }).where(eq(campaign.id, c.id)).run();
+    ctx.changed(c.id);
     await removeImage(ctx.config.uploadDir, c.backgroundImage);
     return { ok: true };
   });
@@ -120,6 +130,7 @@ export function campaignRoutes(r: Router) {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const splitId = idParam(ctx, "splitId");
     undoSplit(ctx.db, c, splitId);
+    ctx.changed(c.id);
     logger.info("loot split undone", { requestId: ctx.requestId, campaignId: c.id, splitId });
     return { ok: true };
   });
@@ -127,6 +138,7 @@ export function campaignRoutes(r: Router) {
   r.post("/api/campaigns/:id/split", (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const result = runSplit(ctx.db, c);
+    ctx.changed(c.id);
     logger.info("loot split", {
       requestId: ctx.requestId,
       campaignId: c.id,

@@ -1,5 +1,8 @@
 import type { ApiErrorBody } from "../shared/types.ts";
 
+/** Identifies this tab, so it can skip live updates about its own changes. */
+export const CLIENT_ID = crypto.randomUUID();
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -11,11 +14,12 @@ export class ApiError extends Error {
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const init: RequestInit = { method, credentials: "same-origin", headers: {} };
+  const headers: Record<string, string> = { "x-client-id": CLIENT_ID };
+  const init: RequestInit = { method, credentials: "same-origin", headers };
   if (body instanceof FormData) init.body = body;
   else if (body !== undefined) {
     init.body = JSON.stringify(body);
-    init.headers = { "content-type": "application/json" };
+    headers["content-type"] = "application/json";
   }
   let res: Response;
   try {

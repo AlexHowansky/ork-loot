@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "../api.ts";
-import { keys, useCampaign, useRefresh } from "../queries.ts";
+import { keys, splitPreviewKey, useCampaign, useRefresh } from "../queries.ts";
+import { useLiveUpdates } from "../live.ts";
 import { CampaignBoard } from "../components/Board.tsx";
 import { CampaignForm } from "../components/CampaignForm.tsx";
 import { Menu } from "../components/Menu.tsx";
@@ -23,6 +24,7 @@ export function CampaignPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  useLiveUpdates(`/api/campaigns/${id}/events`, [keys.campaign(id), splitPreviewKey(id)]);
 
   if (isPending) return <Loading />;
   if (error) return <LoadError error={error} />;

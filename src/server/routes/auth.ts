@@ -86,6 +86,7 @@ export function authRoutes(r: Router) {
     if (!claimed) {
       throw new AppError(409, "That code was just used. Ask your GM for a new one.");
     }
+    ctx.changed(claimed.campaignId);
     logger.info("character joined", {
       requestId: ctx.requestId,
       characterId: claimed.id,

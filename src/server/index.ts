@@ -25,7 +25,8 @@ const server = Bun.serve({
   // Room for a 5 MB image plus multipart overhead.
   maxRequestBodySize: MAX_IMAGE_BYTES + 512 * 1024,
   routes: {
-    "/api/*": (req, srv) => app.handle(req, srv.requestIP(req)?.address),
+    "/api/*": (req, srv) =>
+      app.handle(req, srv.requestIP(req)?.address, () => srv.timeout(req, 0)),
     "/uploads/*": (req, srv) => app.handle(req, srv.requestIP(req)?.address),
     "/*": homepage,
   },

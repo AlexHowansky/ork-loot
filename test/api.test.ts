@@ -732,3 +732,133 @@ describe("reference search", () => {
     expect((await gmB.get(`/api/campaigns/${campaignId}/reference?q=rope`)).status).toBe(404);
   });
 });
+
+describe("live updates", () => {
+  const decoder = new TextDecoder();
+
+  /** Opens an event stream; `next` resolves with the next "changed" origin. */
+  async function openStream(client: Client, path: string) {
+    const abort = new AbortController();
+    const res = await client.raw("GET", path, { signal: abort.signal });
+    const reader = res.body?.getReader();
+    let buf = "";
+    async function next(): Promise<string | null> {
+      for (;;) {
+        const end = buf.indexOf("\n\n");
+        if (end >= 0) {
+          const block = buf.slice(0, end);
+          buf = buf.slice(end + 2);
+          if (!block.startsWith("event: changed")) continue;
+          return JSON.parse(block.split("\ndata: ")[1]!).origin;
+        }
+        const { value, done } = await reader!.read();
+        if (done) throw new Error("stream ended");
+        buf += decoder.decode(value);
+      }
+    }
+    const timeout = () =>
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("no event")), 1000));
+    return {
+      res,
+      next: () => Promise.race([next(), timeout()]),
+      close: () => abort.abort(),
+    };
+  }
+
+  /** Counts the times a campaign is announced as changed. */
+  function watch(campaignId: string) {
+    const seen = { count: 0 };
+    ctx.app.events.subscribe(campaignId, () => seen.count++);
+    return seen;
+  }
+
+  test("the GM's stream hears a player's claim, with the claimant's tab id", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    const potion = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Potion", quantity: 3 })).body;
+    const code = (await view()).characters[0]!.joinCode!;
+    const { player, res } = await join(code);
+    const stream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    expect(stream.res.status).toBe(200);
+    expect(stream.res.headers.get("content-type")).toBe("text/event-stream");
+    await player.raw("POST", `/api/play/${res.body.characterId}/claim`, {
+      headers: { "content-type": "application/json", "x-client-id": "tab-1" },
+      body: JSON.stringify({ lootId: potion.id, quantity: 1 }),
+    });
+    expect(await stream.next()).toBe("tab-1");
+    stream.close();
+  });
+
+  test("a player's stream hears the GM's edits", async () => {
+    const { sessionId, view } = await seed();
+    const { player, res } = await join((await view()).characters[0]!.joinCode!);
+    const stream = await openStream(player, `/api/play/${res.body.characterId}/events`);
+    expect(stream.res.status).toBe(200);
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Rope" });
+    expect(await stream.next()).toBeNull();
+    stream.close();
+  });
+
+  test("closing a stream unsubscribes it", async () => {
+    const { campaignId } = await seed();
+    const stream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    expect(ctx.app.events.count(campaignId)).toBe(1);
+    stream.close();
+    expect(ctx.app.events.count(campaignId)).toBe(0);
+  });
+
+  test("streams need access to the campaign", async () => {
+    const { campaignId, characterIds } = await seed();
+    const gmB = new Client(ctx.app, "10.0.0.2");
+    await gmB.login("bob");
+    expect((await gmB.raw("GET", `/api/campaigns/${campaignId}/events`)).status).toBe(404);
+    const stranger = new Client(ctx.app, "10.0.0.3");
+    expect((await stranger.raw("GET", `/api/play/${characterIds[0]}/events`)).status).toBe(401);
+    expect(ctx.app.events.count(campaignId)).toBe(0);
+  });
+
+  test("a rejected change announces nothing", async () => {
+    const { campaignId, sessionId } = await seed();
+    const seen = watch(campaignId);
+    expect((await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "" })).status).toBe(400);
+    expect(seen.count).toBe(0);
+  });
+
+  test("every change to a campaign is announced", async () => {
+    const { campaignId, characterIds, sessionId, view } = await seed();
+    const seen = watch(campaignId);
+    const expectAnnounced = async <T extends { status: number }>(pending: Promise<T>) => {
+      const before = seen.count;
+      const res = await pending;
+      expect(res.status).toBeLessThan(400);
+      expect(seen.count).toBe(before + 1);
+      return res;
+    };
+    const [amiri, ezren] = characterIds as [string, string];
+    await expectAnnounced(gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, name: "Renamed" }));
+    await expectAnnounced(gmA.post(`/api/campaigns/${campaignId}/characters`, { name: "Seoni", shares: 1 }));
+    await expectAnnounced(gmA.patch(`/api/characters/${ezren}`, { name: "Ezren", shares: 2 }));
+    await expectAnnounced(gmA.post(`/api/characters/${ezren}/code`));
+    const s = (await gmA.post(`/api/campaigns/${campaignId}/sessions`, { date: "2026-02-01" })).body;
+    await expectAnnounced(gmA.patch(`/api/sessions/${s.id}`, { date: "2026-02-02" }));
+    await expectAnnounced(gmA.del(`/api/sessions/${s.id}`));
+    const rope = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Rope", value: 100 })).body;
+    await expectAnnounced(gmA.patch(`/api/loot/${rope.id}`, { name: "Silk rope" }));
+    await expectAnnounced(gmA.post(`/api/loot/${rope.id}/claim`, { characterId: amiri, quantity: 1 }));
+    await expectAnnounced(gmA.post(`/api/loot/${rope.id}/release`));
+    const gem = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gem", value: 500 })).body;
+    const code = (await view()).characters.find((c) => c.id === amiri)!.joinCode!;
+    const player = new Client(ctx.app, "10.0.0.9");
+    await expectAnnounced(player.post("/api/join", { code }));
+    await expectAnnounced(player.post(`/api/play/${amiri}/claim`, { lootId: gem.id, quantity: 1 }));
+    await expectAnnounced(player.post(`/api/play/${amiri}/release`, { lootId: gem.id }));
+    await expectAnnounced(gmA.del(`/api/loot/${gem.id}`));
+    const split = (await expectAnnounced(gmA.post(`/api/campaigns/${campaignId}/split`))).body;
+    await expectAnnounced(gmA.del(`/api/campaigns/${campaignId}/splits/${split.id}`));
+    await expectAnnounced(gmA.post(`/api/campaigns/${campaignId}/split`));
+    await expectAnnounced(player.del(`/api/play/${amiri}`));
+    const merisiel = (await gmA.post(`/api/campaigns/${campaignId}/characters`, { name: "Merisiel", shares: 1 })).body;
+    await expectAnnounced(gmA.del(`/api/characters/${merisiel.id}`));
+    await expectAnnounced(gmA.del(`/api/campaigns/${campaignId}/image`));
+    await expectAnnounced(gmA.del(`/api/campaigns/${campaignId}`));
+  });
+});

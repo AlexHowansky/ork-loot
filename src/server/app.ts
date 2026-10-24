@@ -1,6 +1,8 @@
 import { join } from "node:path";
 import { AppError } from "./lib/errors.ts";
+import { createEventBus } from "./lib/events.ts";
 import {
+  clientIdOf,
   json,
   parseCookies,
   Router,
@@ -50,6 +52,7 @@ function checkCsrf(req: Request, url: URL) {
 
 export function createApp(config: AppConfig) {
   const router = new Router();
+  const events = createEventBus();
   authRoutes(router);
   campaignRoutes(router);
   characterRoutes(router);
@@ -71,10 +74,16 @@ export function createApp(config: AppConfig) {
     });
   }
 
-  async function handle(req: Request, ip = "unknown"): Promise<Response> {
+  /** `keepOpen` lifts the idle timeout for this request (a live stream). */
+  async function handle(
+    req: Request,
+    ip = "unknown",
+    keepOpen: () => void = () => {},
+  ): Promise<Response> {
     const started = performance.now();
     const url = new URL(req.url);
     const requestId = crypto.randomUUID().slice(0, 8).toUpperCase();
+    const touched = new Set<string>();
     const ctx: Ctx = {
       req,
       url,
@@ -85,6 +94,11 @@ export function createApp(config: AppConfig) {
       requestId,
       cookies: parseCookies(req.headers.get("cookie")),
       setCookies: [],
+      events,
+      clientId: clientIdOf(req),
+      touched,
+      changed: (campaignId) => touched.add(campaignId),
+      keepOpen,
     };
     let res: Response;
     try {
@@ -106,6 +120,12 @@ export function createApp(config: AppConfig) {
     } catch (err) {
       res = errorResponse(err, requestId);
     }
+    if (res.status < 400) {
+      for (const campaignId of touched) {
+        logger.debug("campaign changed", { requestId, campaignId });
+        events.publish(campaignId, ctx.clientId);
+      }
+    }
     for (const cookie of ctx.setCookies) res.headers.append("Set-Cookie", cookie);
     res.headers.set("X-Request-Id", requestId);
     logger.info("request", {
@@ -118,7 +138,7 @@ export function createApp(config: AppConfig) {
     return res;
   }
 
-  return { handle };
+  return { handle, events };
 }
 
 function errorResponse(err: unknown, requestId: string): Response {

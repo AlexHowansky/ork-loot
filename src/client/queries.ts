@@ -24,12 +24,13 @@ export const useCampaigns = () =>
 export const useCampaign = (id: string) =>
   useQuery({ queryKey: keys.campaign(id), queryFn: () => api.get<CampaignView>(`/api/campaigns/${id}`) });
 
+/** The split preview; live updates refresh it alongside the campaign. */
+export const splitPreviewKey = (id: string) => ["split-preview", id] as const;
+
 export const usePlay = (id: string) =>
   useQuery({
     queryKey: keys.play(id),
     queryFn: () => api.get<PlayView>(`/api/play/${id}`),
-    // Other players claim things too; keep the pool fresh.
-    refetchInterval: 15_000,
   });
 
 /** Items on the campaign's reference site matching `q`. */

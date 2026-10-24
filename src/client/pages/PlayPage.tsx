@@ -2,6 +2,7 @@ import { useNavigate, useParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "../api.ts";
 import { keys, usePlay } from "../queries.ts";
+import { useLiveUpdates } from "../live.ts";
 import { CampaignBoard } from "../components/Board.tsx";
 import { LoadError, Loading } from "../components/Layout.tsx";
 import { useConfirm } from "../components/Confirm.tsx";
@@ -15,6 +16,7 @@ export function PlayPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  useLiveUpdates(`/api/play/${id}/events`, [keys.play(id)]);
 
   if (isPending) return <Loading />;
   if (error) return <LoadError error={error} />;

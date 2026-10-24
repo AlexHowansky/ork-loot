@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api.ts";
+import { splitPreviewKey } from "../queries.ts";
 import type { CampaignInfo, SplitView } from "../../shared/types.ts";
 import { Modal } from "./Modal.tsx";
 import { Money } from "./Money.tsx";
@@ -20,7 +21,7 @@ export function SplitModal({
   onDone: (split: SplitView) => void;
 }) {
   const preview = useQuery({
-    queryKey: ["split-preview", campaign.id],
+    queryKey: splitPreviewKey(campaign.id),
     queryFn: () => api.get<SplitView>(`/api/campaigns/${campaign.id}/split/preview`),
     gcTime: 0,
   });

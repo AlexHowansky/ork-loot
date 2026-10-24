@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Db } from "../db/client.ts";
 import { AppError, badRequest } from "./errors.ts";
+import type { EventBus } from "./events.ts";
 
 export interface AppConfig {
   db: Db;
@@ -22,6 +23,22 @@ export interface Ctx {
   cookies: Map<string, string>;
   /** Set-Cookie header values to attach to the response. */
   setCookies: string[];
+  events: EventBus;
+  /** The browser tab that sent this request, from `X-Client-Id`. */
+  clientId: string | null;
+  /** Campaigns this request changed; announced if it succeeds. */
+  touched: Set<string>;
+  changed(campaignId: string): void;
+  /** Lifts the server's idle timeout, for long-lived streams. */
+  keepOpen(): void;
+}
+
+const CLIENT_ID = /^[A-Za-z0-9_-]{1,36}$/;
+
+/** The `X-Client-Id` header, if it looks like one of ours. */
+export function clientIdOf(req: Request): string | null {
+  const raw = req.headers.get("x-client-id");
+  return raw !== null && CLIENT_ID.test(raw) ? raw : null;
 }
 
 export type Handler = (ctx: Ctx) => unknown | Promise<unknown>;
