@@ -10,12 +10,10 @@ import { asc, eq } from "drizzle-orm";
 import { openDb } from "../server/db/client.ts";
 import { gm, login } from "../server/db/schema.ts";
 import { hashPassword } from "../server/lib/auth.ts";
-import { emailSchema } from "../shared/schemas.ts";
+import { emailSchema, newPasswordSchema } from "../shared/schemas.ts";
 
 const root = join(import.meta.dir, "../..");
 const db = openDb(process.env.DB_PATH ?? join(root, "data/app.db"));
-
-const MIN_PASSWORD = 10;
 
 /** Input received beyond the current line, kept for the next prompt. */
 let pending = "";
@@ -74,9 +72,8 @@ function promptHidden(question: string): Promise<string> {
 
 async function askPassword(): Promise<string> {
   const pw = process.env.GM_PASSWORD ?? (await promptHidden("Password: "));
-  if (pw.length < MIN_PASSWORD) {
-    fail(`Passwords must be at least ${MIN_PASSWORD} characters.`);
-  }
+  const parsed = newPasswordSchema.safeParse(pw);
+  if (!parsed.success) fail(parsed.error.issues[0]!.message);
   if (!process.env.GM_PASSWORD) {
     const again = await promptHidden("Repeat password: ");
     if (again !== pw) fail("The passwords didn't match.");

@@ -9,6 +9,8 @@ import { ToastProvider } from "./components/Toast.tsx";
 import { Layout } from "./components/Layout.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { LoginPage } from "./pages/LoginPage.tsx";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage.tsx";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage.tsx";
 import { JoinPage } from "./pages/JoinPage.tsx";
 import { CampaignPage } from "./pages/CampaignPage.tsx";
 import { PlayPage } from "./pages/PlayPage.tsx";
@@ -37,6 +39,8 @@ createRoot(document.getElementById("root")!).render(
               <Route element={<Layout />}>
                 <Route index element={<HomePage />} />
                 <Route path="login" element={<LoginPage />} />
+                <Route path="forgot" element={<ForgotPasswordPage />} />
+                <Route path="reset" element={<ResetPasswordPage />} />
                 <Route path="join" element={<JoinPage />} />
                 <Route path="campaigns/:id" element={<CampaignPage />} />
                 <Route path="play/:id" element={<PlayPage />} />

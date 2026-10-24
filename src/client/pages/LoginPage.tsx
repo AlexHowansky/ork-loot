@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage, fieldErrors } from "../api.ts";
 import { keys } from "../queries.ts";
@@ -54,6 +54,9 @@ export function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
+        <Link to="/forgot" state={{ email }} className="link link-hover text-sm self-start">
+          Forgot password?
+        </Link>
         <div className="card-actions justify-end mt-2">
           <button className="btn btn-primary" disabled={busy}>
             {busy && <span className="loading loading-spinner loading-sm" />}

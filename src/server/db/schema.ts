@@ -41,6 +41,20 @@ export const login = sqliteTable("login", {
   createdAt: createdAt(),
 });
 
+/** A password reset link. `id` is the SHA-256 of the token in the link. */
+export const passwordReset = sqliteTable(
+  "password_reset",
+  {
+    id: text("id").primaryKey(),
+    gmId: text("gm_id")
+      .notNull()
+      .references(() => gm.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("password_reset_gm_idx").on(t.gmId)],
+);
+
 /** A player's browser. Its cookie never expires. */
 export const player = sqliteTable("player", {
   id: integer("id").primaryKey({ autoIncrement: true }),

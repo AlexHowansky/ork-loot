@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Db } from "../db/client.ts";
 import { AppError, badRequest } from "./errors.ts";
 import type { EventBus } from "./events.ts";
+import type { Mailer } from "./mail.ts";
 import type { LiveNotice } from "../../shared/types.ts";
 
 export interface AppConfig {
@@ -11,6 +12,10 @@ export interface AppConfig {
   secureCookies: boolean;
   /** Used to reach reference sites; tests pass a stub. */
   fetch?: typeof fetch;
+  /** Sends password reset links; tests pass a stub. */
+  mailer: Mailer;
+  /** The public address of the app, e.g. https://loot.example.com, for links in mail. */
+  appUrl: string;
 }
 
 export interface Ctx {

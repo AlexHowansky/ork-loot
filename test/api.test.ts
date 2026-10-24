@@ -1,7 +1,15 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
-import { addGm, Client, makeApp, referenceCalls, setReferenceReply } from "./helpers.ts";
-import { campaign } from "../src/server/db/schema.ts";
+import {
+  addGm,
+  Client,
+  makeApp,
+  ORIGIN,
+  referenceCalls,
+  sentMail,
+  setReferenceReply,
+} from "./helpers.ts";
+import { campaign, passwordReset } from "../src/server/db/schema.ts";
 import type { CampaignView, CharacterView, LiveNotice, PlayView } from "../src/shared/types.ts";
 
 let ctx: ReturnType<typeof makeApp>;
@@ -91,6 +99,92 @@ describe("auth", () => {
       body: "name=x",
     });
     expect(res.status).toBe(415);
+  });
+});
+
+describe("password reset", () => {
+  const NEW_PASSWORD = "a brand new password";
+
+  /** Asks for a reset link and returns the token from the email. */
+  async function requestReset(email = "alice@example.com") {
+    const res = await new Client(ctx.app).post("/api/auth/forgot", { email });
+    expect(res.status).toBe(200);
+    const link = sentMail.at(-1)!.text.match(/https?:\/\/\S+/)![0];
+    expect(link.startsWith(`${ORIGIN}/reset#`)).toBe(true);
+    return link.slice(link.indexOf("#") + 1);
+  }
+
+  test("emails a reset link to a GM", async () => {
+    await requestReset("  Alice@Example.COM ");
+    expect(sentMail).toHaveLength(1);
+    expect(sentMail[0]!.to).toBe("alice@example.com");
+  });
+
+  test("answers the same for unknown addresses and sends nothing", async () => {
+    const res = await new Client(ctx.app).post("/api/auth/forgot", {
+      email: "mallory@example.com",
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect(sentMail).toHaveLength(0);
+  });
+
+  test("sets the new password, signs in, and signs out elsewhere", async () => {
+    const token = await requestReset();
+    const browser = new Client(ctx.app);
+    const res = await browser.post("/api/auth/reset", { token, password: NEW_PASSWORD });
+    expect(res.status).toBe(200);
+    expect(res.body.gm.email).toBe("alice@example.com");
+    expect((await browser.get("/api/campaigns")).status).toBe(200);
+    expect((await gmA.get("/api/campaigns")).status).toBe(401);
+    expect((await new Client(ctx.app).login("alice@example.com")).status).toBe(401);
+    expect((await new Client(ctx.app).login("alice@example.com", NEW_PASSWORD)).status).toBe(200);
+  });
+
+  test("a link works only once", async () => {
+    const token = await requestReset();
+    const c = new Client(ctx.app);
+    expect((await c.post("/api/auth/reset", { token, password: NEW_PASSWORD })).status).toBe(200);
+    const again = await c.post("/api/auth/reset", { token, password: "yet another password" });
+    expect(again.status).toBe(400);
+    expect(again.body.error).toContain("expired or was already used");
+  });
+
+  test("a newer link replaces an older one", async () => {
+    const first = await requestReset();
+    await requestReset();
+    const res = await new Client(ctx.app).post("/api/auth/reset", {
+      token: first,
+      password: NEW_PASSWORD,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test("an expired link is refused", async () => {
+    const token = await requestReset();
+    ctx.db.update(passwordReset).set({ expiresAt: new Date(Date.now() - 1000) }).run();
+    const res = await new Client(ctx.app).post("/api/auth/reset", {
+      token,
+      password: NEW_PASSWORD,
+    });
+    expect(res.status).toBe(400);
+    expect((await new Client(ctx.app).login("alice@example.com")).status).toBe(200);
+  });
+
+  test("refuses a short password", async () => {
+    const token = await requestReset();
+    const res = await new Client(ctx.app).post("/api/auth/reset", { token, password: "short" });
+    expect(res.status).toBe(400);
+    expect(res.body.fields.password).toContain("at least 10 characters");
+  });
+
+  test("rate limits reset requests", async () => {
+    const c = new Client(ctx.app, "10.9.9.8");
+    let last = 0;
+    for (let i = 0; i < 7; i++) {
+      last = (await c.post("/api/auth/forgot", { email: "mallory@example.com" })).status;
+    }
+    expect(last).toBe(429);
   });
 });
 

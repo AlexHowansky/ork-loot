@@ -70,6 +70,15 @@ CREATE TABLE `loot` (
 --> statement-breakpoint
 CREATE INDEX `loot_session_idx` ON `loot` (`session_id`);--> statement-breakpoint
 CREATE INDEX `loot_character_idx` ON `loot` (`character_id`);--> statement-breakpoint
+CREATE TABLE `password_reset` (
+	`id` text PRIMARY KEY NOT NULL,
+	`gm_id` text NOT NULL,
+	`expires_at` integer NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`gm_id`) REFERENCES `gm`(`id`) ON UPDATE no action ON DELETE cascade
+);
+--> statement-breakpoint
+CREATE INDEX `password_reset_gm_idx` ON `password_reset` (`gm_id`);--> statement-breakpoint
 CREATE TABLE `petty_cash_entry` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`campaign_id` text NOT NULL,

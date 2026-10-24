@@ -27,6 +27,14 @@ The product specification (terms and features) is in @SPEC.md.
   in memory, so the server runs as a single process; more than one would
   need a shared bus.
 
+* Email goes through `src/server/lib/mail.ts`: SMTP (nodemailer) when
+  `SMTP_HOST` is set, otherwise the message is written to the log. SMTP is
+  only ever spoken over verified TLS: implicit TLS on ports 465 and 2465,
+  required STARTTLS on any other; a server that can't do it gets nothing,
+  not even the login. Links in mail are built from `APP_URL`, never from
+  the request's Host header. Password reset tokens travel in the URL
+  fragment so they stay out of server logs and Referer headers.
+
 * Use a SQL abstraction layer for local storage. For now, we'll use SQLite in
   test and prod, but we might switch to another database later. Migrations
   live in `drizzle/` and are applied on startup.
@@ -93,6 +101,10 @@ The product specification (terms and features) is in @SPEC.md.
 * `bun run db:generate` writes a migration after a schema change.
 * `DB_PATH`, `UPLOAD_DIR`, `PORT`, `LOG_LEVEL` and `NODE_ENV` configure the
   server. Data defaults to `data/`, which is not committed.
+* `APP_URL` is the app's public address (default `http://localhost:PORT`).
+  `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`
+  configure outgoing mail. Without `SMTP_HOST`, as in dev, password reset
+  links appear in the server log.
 
 ## Conclusion
 

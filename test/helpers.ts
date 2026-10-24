@@ -5,6 +5,7 @@ import { createApp } from "../src/server/app.ts";
 import { openDb, type Db } from "../src/server/db/client.ts";
 import { gm } from "../src/server/db/schema.ts";
 import { hashPassword } from "../src/server/lib/auth.ts";
+import type { Mail, Mailer } from "../src/server/lib/mail.ts";
 
 export const ORIGIN = "http://loot.test";
 
@@ -20,12 +21,28 @@ const stubFetch = (async (url: string | URL | Request, init?: RequestInit) => {
   return referenceReply();
 }) as typeof fetch;
 
+/** Mail the app has sent. */
+export const sentMail: Mail[] = [];
+const stubMailer: Mailer = {
+  async send(mail) {
+    sentMail.push(mail);
+  },
+};
+
 export function makeApp() {
   const db = openDb(":memory:");
   const uploadDir = mkdtempSync(join(tmpdir(), "phat-loot-"));
   referenceCalls.length = 0;
+  sentMail.length = 0;
   setReferenceReply(() => Response.json({ hits: { hits: [] } }));
-  const app = createApp({ db, uploadDir, secureCookies: false, fetch: stubFetch });
+  const app = createApp({
+    db,
+    uploadDir,
+    secureCookies: false,
+    fetch: stubFetch,
+    mailer: stubMailer,
+    appUrl: ORIGIN,
+  });
   return { db, uploadDir, app };
 }
 

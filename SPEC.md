@@ -64,7 +64,15 @@ players to claim or sell the loot. The app will track the value of the loot,
 the size of the share that each player gets when selling based on what items
 they have claimed from the pool.
 
-* GMs are created by a CLI tool. GMs login with a userid and password. 
+* GMs are created by a CLI tool. GMs sign in with their email address and
+  password.
+
+* The GM sign-in panel has a "Forgot password?" link. It asks for an email
+  address and always answers the same way, so it doesn't reveal which
+  addresses belong to GMs. A GM's address is emailed a link that works once
+  and for one hour; asking again replaces the earlier link. The link opens a
+  page to choose a new password (at least 10 characters, typed twice).
+  Saving it signs the GM out everywhere else and signs them in.
 
 * GMs can view, create, edit, and delete their own campaigns.
 

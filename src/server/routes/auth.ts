@@ -1,18 +1,26 @@
 import { and, asc, eq } from "drizzle-orm";
-import { campaign, character } from "../db/schema.ts";
+import { campaign, character, gm } from "../db/schema.ts";
 import {
   currentGm,
   currentPlayer,
   endLogin,
   ensurePlayer,
+  finishPasswordReset,
+  hashPassword,
   startLogin,
+  startPasswordReset,
   verifyCredentials,
 } from "../lib/auth.ts";
 import { AppError } from "../lib/errors.ts";
 import { readJson, type Ctx, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { RateLimiter } from "../lib/rate-limit.ts";
-import { joinSchema, loginSchema } from "../../shared/schemas.ts";
+import {
+  forgotSchema,
+  joinSchema,
+  loginSchema,
+  resetSchema,
+} from "../../shared/schemas.ts";
 import type { Me } from "../../shared/types.ts";
 
 function me(ctx: Ctx): Me {
@@ -38,6 +46,8 @@ function me(ctx: Ctx): Me {
 export function authRoutes(r: Router) {
   const loginLimiter = new RateLimiter(10, 60_000);
   const joinLimiter = new RateLimiter(10, 60_000);
+  const forgotLimiter = new RateLimiter(5, 15 * 60_000);
+  const resetLimiter = new RateLimiter(10, 60_000);
 
   r.get("/api/auth/me", me);
 
@@ -57,6 +67,59 @@ export function authRoutes(r: Router) {
   r.post("/api/auth/logout", (ctx) => {
     endLogin(ctx);
     return { ok: true };
+  });
+
+  r.post("/api/auth/forgot", async (ctx) => {
+    forgotLimiter.hit(ctx.ip);
+    const { email } = await readJson(ctx, forgotSchema);
+    const row = ctx.db.select().from(gm).where(eq(gm.email, email)).get();
+    if (!row) {
+      logger.info("password reset for unknown address", {
+        requestId: ctx.requestId,
+        ip: ctx.ip,
+      });
+      return { ok: true };
+    }
+    const token = startPasswordReset(ctx.db, row.id);
+    const link = `${ctx.config.appUrl}/reset#${token}`;
+    logger.info("password reset requested", { requestId: ctx.requestId, gmId: row.id });
+    // Not awaited, so the reply takes as long whether or not the address
+    // belongs to a GM.
+    ctx.config.mailer
+      .send({
+        to: row.email,
+        subject: "Reset your Phat Loot password",
+        text:
+          "Someone asked to reset the password for your Phat Loot GM account.\n\n" +
+          `To choose a new password, open this link within the next hour:\n\n${link}\n\n` +
+          "If it wasn't you, you can ignore this email; your password hasn't changed.\n",
+      })
+      .catch((err) => {
+        logger.error("password reset email failed", {
+          requestId: ctx.requestId,
+          gmId: row.id,
+          err,
+        });
+      });
+    return { ok: true };
+  });
+
+  r.post("/api/auth/reset", async (ctx) => {
+    resetLimiter.hit(ctx.ip);
+    const { token, password } = await readJson(ctx, resetSchema);
+    const gmId = finishPasswordReset(ctx.db, token, await hashPassword(password));
+    if (!gmId) {
+      logger.warn("password reset link rejected", { requestId: ctx.requestId, ip: ctx.ip });
+      throw new AppError(
+        400,
+        "That reset link has expired or was already used. Ask for a new one.",
+      );
+    }
+    // Every login, this browser's included, was ended; sign it back in.
+    startLogin(ctx, gmId);
+    logger.info("password reset", { requestId: ctx.requestId, gmId });
+    const row = ctx.db.select().from(gm).where(eq(gm.id, gmId)).get()!;
+    return { gm: { id: row.id, email: row.email }, characters: me(ctx).characters };
   });
 
   r.post("/api/join", async (ctx) => {

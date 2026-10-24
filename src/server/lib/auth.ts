@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "../db/client.ts";
-import { character, gm, login, player } from "../db/schema.ts";
+import { character, gm, login, passwordReset, player } from "../db/schema.ts";
 import { AppError, notFound, unauthorized } from "./errors.ts";
 import { serializeCookie, type Ctx } from "./http.ts";
 import { logger } from "./logger.ts";
@@ -10,6 +10,7 @@ export const PLAYER_COOKIE = "pl_player";
 
 const DAY = 24 * 60 * 60 * 1000;
 const LOGIN_TTL = 30 * DAY;
+const RESET_TTL = 60 * 60 * 1000;
 /** Player cookies are meant to last forever; ten years is close enough. */
 const PLAYER_MAX_AGE = 10 * 365 * 24 * 60 * 60;
 
@@ -44,6 +45,49 @@ export async function verifyCredentials(
     return null;
   }
   return (await Bun.password.verify(password, row.passwordHash)) ? row : null;
+}
+
+/**
+ * Creates a password reset link for a GM, replacing any earlier one, and
+ * returns the token to put in it.
+ */
+export function startPasswordReset(db: Db, gmId: string): string {
+  const token = newToken();
+  db.transaction((tx) => {
+    tx.delete(passwordReset).where(eq(passwordReset.gmId, gmId)).run();
+    tx.insert(passwordReset)
+      .values({
+        id: hashToken(token),
+        gmId,
+        expiresAt: new Date(Date.now() + RESET_TTL),
+      })
+      .run();
+  });
+  return token;
+}
+
+/**
+ * Sets a new password using a reset token. The token is used up, and the
+ * GM is signed out everywhere. Returns the GM's id, or null if the token is
+ * unknown, used or expired.
+ */
+export function finishPasswordReset(
+  db: Db,
+  token: string,
+  passwordHash: string,
+): string | null {
+  return db.transaction((tx) => {
+    const reset = tx
+      .delete(passwordReset)
+      .where(eq(passwordReset.id, hashToken(token)))
+      .returning()
+      .get();
+    if (!reset || reset.expiresAt.getTime() < Date.now()) return null;
+    tx.update(gm).set({ passwordHash }).where(eq(gm.id, reset.gmId)).run();
+    tx.delete(login).where(eq(login.gmId, reset.gmId)).run();
+    tx.delete(passwordReset).where(eq(passwordReset.gmId, reset.gmId)).run();
+    return reset.gmId;
+  });
 }
 
 export function startLogin(ctx: Ctx, gmId: string) {
