@@ -27,7 +27,8 @@ export function CampaignBoard({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pool");
   const { campaign, pool } = view;
   const me = mode.kind === "player" ? view.characters.find((c) => c.id === mode.characterId) : undefined;
-  const perShare = pool.totalShares ? Math.floor(pool.sellable / pool.totalShares) : 0;
+  const toSplit = pool.sellable + campaign.pettyCash;
+  const perShare = pool.totalShares ? Math.floor(toSplit / pool.totalShares) : 0;
 
   const tabs: [Tab, string, number?][] = [
     ["loot", "Loot", view.loot.length],
@@ -57,7 +58,11 @@ export function CampaignBoard({
       </section>
 
       <div className="stats mb-3 w-full grid-flow-row grid-cols-2 bg-base-100 shadow md:grid-cols-3 lg:grid-flow-col lg:grid-cols-none">
-        <Stat title="Pool to split" value={<Money amount={pool.sellable} campaign={campaign} />} desc="Available and claimed" />
+        <Stat
+          title="Pool to split"
+          value={<Money amount={toSplit} campaign={campaign} />}
+          desc={campaign.pettyCash ? "Available and claimed, plus petty cash" : "Available and claimed"}
+        />
         <Stat
           title="Per share"
           value={<Money amount={perShare} campaign={campaign} />}
@@ -65,7 +70,7 @@ export function CampaignBoard({
         />
         <Stat title="Claimed" value={<Money amount={pool.claimed} campaign={campaign} />} desc="Deducted from claimants" />
         <Stat title="Party fund" value={<Money amount={pool.party} campaign={campaign} />} desc="Kept, not sold" />
-        <Stat title="Petty cash" value={<Money amount={campaign.pettyCash} campaign={campaign} />} desc="Split leftovers" />
+        <Stat title="Petty cash" value={<Money amount={campaign.pettyCash} campaign={campaign} />} desc="Paid out in the next split" />
         {me && (
           <Stat
             title="Your payout now"

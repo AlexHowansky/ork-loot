@@ -56,7 +56,18 @@ export function SplitModal({
           <>
             <p className="mb-2">
               Selling the pool brings in{" "}
-              <Money amount={preview.data.total} campaign={campaign} className="font-semibold" />. Available
+              <Money
+                amount={preview.data.total - (preview.data.pettyCash ?? 0)}
+                campaign={campaign}
+                className="font-semibold"
+              />
+              {!!preview.data.pettyCash && (
+                <>
+                  , and <Money amount={preview.data.pettyCash} campaign={campaign} className="font-semibold" /> of
+                  petty cash is paid out with it
+                </>
+              )}
+              . Available
               items become <em>sold</em>, claimed items become <em>bought</em>, and the party fund is kept.
             </p>
             {empty ? (
@@ -71,7 +82,7 @@ export function SplitModal({
                 {preview.data.leftover > 0 && (
                   <p className="mt-2 text-sm text-base-content/70">
                     <Money amount={preview.data.leftover} campaign={campaign} className="font-semibold" /> doesn't
-                    divide evenly across the shares and will go to petty cash.
+                    divide evenly across the shares and will be kept as petty cash for the next split.
                   </p>
                 )}
               </>

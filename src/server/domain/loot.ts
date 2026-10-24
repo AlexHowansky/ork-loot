@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNull, ne, sql, type SQL } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, ne, type SQL } from "drizzle-orm";
 import type { DbOrTx as Db } from "../db/client.ts";
 import {
   campaign,
@@ -168,20 +168,25 @@ export function releaseAllClaims(db: Db, who: Character): number {
   });
 }
 
-function splitPlan(db: Db, c: Campaign) {
+function splitPlan(db: Db, campaignId: string) {
+  // Read afresh so a split inside a transaction sees current petty cash.
+  const c = db.select().from(campaign).where(eq(campaign.id, campaignId)).get();
+  if (!c) throw notFound("That campaign");
   const chars = db
     .select()
     .from(character)
     .where(eq(character.campaignId, c.id))
     .all();
   const rows = campaignLoot(db, c.id);
-  const computed = computePool(rows, chars);
+  const computed = computePool(rows, chars, c.pettyCash);
   // A character with no shares and no claims sits the split out entirely,
   // so it leaves no trace in the split's history.
   const taking = computed.allocations
     .map((a, i) => ({ a, ch: chars[i]! }))
     .filter(({ a }) => a.shares > 0 || a.claimed > 0);
   return {
+    pettyCash: c.pettyCash,
+    total: computed.pool.sellable + c.pettyCash,
     chars: taking.map((t) => t.ch),
     rows,
     pool: computed.pool,
@@ -192,11 +197,12 @@ function splitPlan(db: Db, c: Campaign) {
 
 /** What a split would pay out right now, without changing anything. */
 export function previewSplit(db: Db, c: Campaign): SplitView {
-  const { chars, pool, allocations, leftover } = splitPlan(db, c);
+  const { chars, pool, allocations, leftover, total, pettyCash } = splitPlan(db, c.id);
   return {
     id: 0,
     createdAt: Date.now(),
-    total: pool.sellable,
+    total,
+    pettyCash,
     totalShares: pool.totalShares,
     leftover,
     shares: allocations
@@ -213,13 +219,13 @@ export function previewSplit(db: Db, c: Campaign): SplitView {
 }
 
 /**
- * Sells the pool: records each character's payout, adds the leftover to
- * petty cash, marks claimed items bought and available items sold. Party and
+ * Sells the pool and pays out petty cash with it: records each character's
+ * payout, keeps what doesn't divide evenly as the new petty cash, marks claimed items bought and available items sold. Party and
  * left-behind items are untouched.
  */
 export function runSplit(db: Db, c: Campaign): SplitView {
   const id = db.transaction((tx) => {
-    const { chars, rows, pool, allocations, leftover } = splitPlan(tx, c);
+    const { chars, rows, pool, allocations, leftover, total } = splitPlan(tx, c.id);
     if (pool.totalShares === 0) {
       throw badRequest("Give at least one character a share before running a split.");
     }
@@ -229,7 +235,7 @@ export function runSplit(db: Db, c: Campaign): SplitView {
     }
     const created = tx
       .insert(split)
-      .values({ campaignId: c.id, total: pool.sellable, totalShares: pool.totalShares })
+      .values({ campaignId: c.id, total, totalShares: pool.totalShares })
       .returning()
       .get();
     tx.insert(splitShare)
@@ -245,12 +251,7 @@ export function runSplit(db: Db, c: Campaign): SplitView {
         })),
       )
       .run();
-    if (leftover > 0) {
-      tx.update(campaign)
-        .set({ pettyCash: sql`${campaign.pettyCash} + ${leftover}` })
-        .where(eq(campaign.id, c.id))
-        .run();
-    }
+    tx.update(campaign).set({ pettyCash: leftover }).where(eq(campaign.id, c.id)).run();
     const ids = (status: Loot["status"]) =>
       sold.filter((r) => r.status === status).map((r) => r.id);
     const claimedIds = ids("claimed");

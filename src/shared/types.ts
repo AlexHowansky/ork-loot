@@ -24,7 +24,10 @@ export interface CampaignInfo {
   currencyDecimals: number;
   /** Where item links will point, e.g. a rules reference site. */
   baseReferenceUrl: string | null;
-  /** Split leftovers that don't divide evenly. Not editable by hand. */
+  /**
+   * What the last split couldn't divide evenly; the next split pays it out.
+   * Not editable by hand.
+   */
   pettyCash: number;
 }
 
@@ -49,7 +52,7 @@ export interface CharacterView {
   id: string;
   name: string;
   shares: number;
-  /** Projected share of the sellable pool if a split ran now. */
+  /** Projected share of the pool and petty cash if a split ran now. */
   gross: number;
   /** Market value of items this character has claimed. */
   claimed: number;
@@ -103,9 +106,12 @@ export interface SplitShareView {
 export interface SplitView {
   id: number;
   createdAt: number;
+  /** The loot sold plus the petty cash paid out with it. */
   total: number;
+  /** Preview only: the petty cash included in `total`. */
+  pettyCash?: number;
   totalShares: number;
-  /** What the shares couldn't divide evenly; it goes to petty cash. */
+  /** What the shares couldn't divide evenly; it becomes the petty cash. */
   leftover: number;
   shares: SplitShareView[];
 }

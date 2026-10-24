@@ -74,10 +74,14 @@ export function campaignLoot(db: Db, campaignId: string): Loot[] {
     .map((r) => r.loot);
 }
 
-/** Pool totals plus each character's projected split right now. */
+/**
+ * Pool totals plus each character's projected split right now. Petty cash
+ * is divided along with the loot, so a split pays it out.
+ */
 export function computePool(
   rows: Loot[],
   characters: { id: string; shares: number }[],
+  pettyCash: number,
 ) {
   let sellable = 0;
   let party = 0;
@@ -96,7 +100,7 @@ export function computePool(
     }
   }
   const { rows: allocations, leftover } = allocate(
-    sellable,
+    sellable + pettyCash,
     characters.map((c) => ({
       id: c.id,
       shares: c.shares,
@@ -131,7 +135,7 @@ export function listCampaigns(db: Db, gmId: string): CampaignSummary[] {
         .from(session)
         .where(eq(session.campaignId, c.id))
         .get()?.n ?? 0;
-    const { pool } = computePool(campaignLoot(db, c.id), chars);
+    const { pool } = computePool(campaignLoot(db, c.id), chars, c.pettyCash);
     return {
       ...campaignInfo(c),
       characterCount: chars.length,
@@ -163,7 +167,7 @@ export function campaignView(
     .orderBy(desc(session.date), desc(session.id))
     .all();
   const rows = campaignLoot(db, c.id);
-  const { pool, allocations } = computePool(rows, chars);
+  const { pool, allocations } = computePool(rows, chars, c.pettyCash);
   const counts = new Map<number, number>();
   for (const r of rows) counts.set(r.sessionId, (counts.get(r.sessionId) ?? 0) + 1);
 

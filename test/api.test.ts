@@ -380,9 +380,9 @@ describe("loot split", () => {
     expect((await gmA.post(`/api/campaigns/${campaignId}/split`)).status).toBe(400);
   });
 
-  test("leftovers go to petty cash only when a split runs", async () => {
+  test("leftovers become petty cash, which the next split pays out", async () => {
     const { campaignId, sessionId, view } = await seed();
-    // 4 shares; a subtotal of 1003 leaves 3 over, then 1001 leaves 1 more.
+    // 4 shares; a subtotal of 1003 leaves 3 over.
     await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Statue", value: 2006 });
 
     const preview = (await gmA.get(`/api/campaigns/${campaignId}/split/preview`)).body;
@@ -394,11 +394,17 @@ describe("loot split", () => {
     expect(first.leftover).toBe(3);
     expect((await view()).campaign.pettyCash).toBe(3);
 
-    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Vase", value: 2002 });
+    // 1002 of loot plus 3 of petty cash is 1005: 251 a share, 1 over.
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Vase", value: 2004 });
+    const before = await view();
+    expect(before.characters.map((c) => c.gross).sort()).toEqual([251, 251, 502]);
+    const next = (await gmA.get(`/api/campaigns/${campaignId}/split/preview`)).body;
+    expect(next).toMatchObject({ total: 1005, pettyCash: 3, leftover: 1 });
+
     await gmA.post(`/api/campaigns/${campaignId}/split`);
     const after = await view();
-    expect(after.campaign.pettyCash).toBe(4);
-    expect(after.splits.map((s) => s.leftover)).toEqual([1, 3]);
+    expect(after.campaign.pettyCash).toBe(1);
+    expect(after.splits.map((s) => [s.total, s.leftover])).toEqual([[1005, 1], [1003, 3]]);
   });
 
   test("characters with split history can't be deleted", async () => {
