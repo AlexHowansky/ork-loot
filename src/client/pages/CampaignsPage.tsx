@@ -38,17 +38,19 @@ export function CampaignsPage() {
               <CampaignCover image={c.backgroundImage} />
               <div className="card-body p-4">
                 <h2 className="card-title">{c.name}</h2>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-base-content/70">
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm text-base-content/70">
                   <span>
                     <Icon icon={faCalendarDays} /> {c.startDate}
                   </span>
                   <span>
                     <Icon icon={faUsers} /> {c.characterCount} characters
                   </span>
-                  <span>{c.sessionCount} sessions</span>
                 </div>
-                <div className="text-sm">
-                  Pool: <Money amount={c.poolTotal} campaign={c} className="font-semibold" />
+                <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
+                  <span className="text-base-content/70">{c.sessionCount} sessions</span>
+                  <span>
+                    Pool: <Money amount={c.poolTotal} campaign={c} className="font-semibold" />
+                  </span>
                 </div>
               </div>
             </Link>
