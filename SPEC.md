@@ -100,6 +100,10 @@ they have claimed from the pool.
 * Players see the whole campaign: every loot item, every character's shares
   and projected payout, and the split history. Join codes are GM-only.
 
+* The campaign page, for the GM and players alike, shows its contents in tabs
+  in this order: "Loot", "Sessions", "Splits" and "Characters". Loot is shown
+  first.
+
 * The GM can view, create, edit, and delete sessions in their campaigns.
 
 * The GM can view, create, edit, and delete loot in a session. Each loot entry

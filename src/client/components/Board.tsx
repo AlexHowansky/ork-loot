@@ -9,7 +9,7 @@ import { Icon, faCalendarDays } from "./Icon.tsx";
 
 export type Mode = { kind: "gm" } | { kind: "player"; characterId: string };
 
-type Tab = "loot" | "characters" | "sessions" | "splits";
+type Tab = "loot" | "sessions" | "splits" | "characters";
 
 /** The campaign's header, totals and tabs, for both GMs and players. */
 export function CampaignBoard({
@@ -32,9 +32,9 @@ export function CampaignBoard({
 
   const tabs: [Tab, string, number?][] = [
     ["loot", "Loot", view.loot.length],
-    ["characters", "Characters", view.characters.length],
     ["sessions", "Sessions", view.sessions.length],
     ["splits", "Splits", view.splits.length],
+    ["characters", "Characters", view.characters.length],
   ];
 
   return (
