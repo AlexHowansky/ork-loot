@@ -31,6 +31,14 @@ export function CampaignBoard({
   const [search, setSearch] = useState("");
   const [lootSort, setLootSort] = useState<LootSort>(DEFAULT_SORT);
   const { campaign, pool } = view;
+
+  /** Puts the loot filters back to their defaults, then applies any given. */
+  function filterLoot(f: { session?: number; status?: StatusFilter; claim?: ClaimFilter } = {}) {
+    setSessionFilter(f.session ?? "all");
+    setStatusFilter(f.status ?? "pool");
+    setClaimFilter(f.claim ?? "all");
+    setSearch("");
+  }
   const me = mode.kind === "player" ? view.characters.find((c) => c.id === mode.characterId) : undefined;
   // Petty cash above its hold joins the split; a shortfall is kept back.
   const toSplit = pool.sellable + pool.pettyCashIn;
@@ -146,6 +154,7 @@ export function CampaignBoard({
               onClaimFilter={setClaimFilter}
               search={search}
               onSearch={setSearch}
+              onClear={() => filterLoot()}
               sort={lootSort}
               onSort={setLootSort}
             />
@@ -155,10 +164,7 @@ export function CampaignBoard({
               view={view}
               mode={mode}
               onShowLoot={(id) => {
-                setClaimFilter(id);
-                setSessionFilter("all");
-                setStatusFilter("all");
-                setSearch("");
+                filterLoot({ claim: id, status: "all" });
                 setTab("loot");
               }}
             />
@@ -168,10 +174,7 @@ export function CampaignBoard({
               view={view}
               mode={mode}
               onShowLoot={(id) => {
-                setSessionFilter(id);
-                setStatusFilter("all");
-                setClaimFilter("all");
-                setSearch("");
+                filterLoot({ session: id, status: "all" });
                 setTab("loot");
               }}
             />

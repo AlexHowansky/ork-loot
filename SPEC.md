@@ -223,6 +223,10 @@ they have claimed from the pool.
   character has claimed or bought, from all sessions and of every status,
   with the search cleared.
 
+* A "Clear" button beside the loot table's filters puts them all back to
+  their defaults: "Pool", all sessions, "Anyone" and an empty search. It
+  leaves the sort as it is, and is disabled when there's nothing to clear.
+
 * Item statuses are as follows:
     * Available: This item is in the current loot pool, is free to be claimed,
                  and will be sold during the next split. This is the default for

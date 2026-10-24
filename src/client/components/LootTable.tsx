@@ -22,6 +22,7 @@ import {
   faSortDown,
   faSortUp,
   faTrash,
+  faXmark,
 } from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
@@ -75,6 +76,7 @@ export function LootTable({
   onClaimFilter,
   search,
   onSearch,
+  onClear,
   sort,
   onSort,
 }: {
@@ -89,6 +91,8 @@ export function LootTable({
   /** Text the item names must contain. */
   search: string;
   onSearch: (v: string) => void;
+  /** Puts every filter back to its default. */
+  onClear: () => void;
   sort: LootSort;
   onSort: (v: LootSort) => void;
 }) {
@@ -107,6 +111,7 @@ export function LootTable({
   const claimants = view.characters.filter((c) => c.shares > 0);
   const canClaim = mode.kind === "gm" ? claimants.length > 0 : claimants.some((c) => c.id === mode.characterId);
   const needle = fold(search.trim());
+  const filtered = statusFilter !== "pool" || sessionFilter !== "all" || claimFilter !== "all" || search !== "";
   // A character deleted while chosen leaves nothing to match, so show everyone's.
   const claimedBy =
     claimFilter === "all" || claimFilter === "none" || nameById.has(claimFilter) ? claimFilter : "all";
@@ -289,6 +294,9 @@ export function LootTable({
             onKeyDown={(e) => e.key === "Escape" && onSearch("")}
           />
         </label>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={!filtered} onClick={onClear}>
+          <Icon icon={faXmark} /> Clear
+        </button>
         <span className="text-sm text-base-content/70">
           {rows.length} {rows.length === 1 ? "item" : "items"} · <Money amount={shownTotal} campaign={campaign} />
         </span>
