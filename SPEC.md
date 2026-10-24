@@ -153,6 +153,11 @@ they have claimed from the pool.
   and claimed), "Available" (not yet claimed), "Gone" (sold, bought and
   abandoned) and "All".
 
+* A search box beside the loot table's filters narrows it to items whose
+  name contains the text typed, ignoring case and accents. It works together
+  with the session and status filters, and Escape clears it. Following a
+  session's link to its loot clears the search.
+
 * Item statuses are as follows:
     * Available: This item is in the current loot pool, is free to be claimed,
                  and will be sold during the next split. This is the default for

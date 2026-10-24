@@ -25,6 +25,7 @@ export function CampaignBoard({
   const [tab, setTab] = useState<Tab>("loot");
   const [sessionFilter, setSessionFilter] = useState<number | "all">("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pool");
+  const [search, setSearch] = useState("");
   const { campaign, pool } = view;
   const me = mode.kind === "player" ? view.characters.find((c) => c.id === mode.characterId) : undefined;
   const toSplit = pool.sellable + campaign.pettyCash;
@@ -114,6 +115,8 @@ export function CampaignBoard({
               onSessionFilter={setSessionFilter}
               statusFilter={statusFilter}
               onStatusFilter={setStatusFilter}
+              search={search}
+              onSearch={setSearch}
             />
           )}
           {tab === "characters" && <CharacterTable view={view} mode={mode} />}
@@ -124,6 +127,7 @@ export function CampaignBoard({
               onShowLoot={(id) => {
                 setSessionFilter(id);
                 setStatusFilter("all");
+                setSearch("");
                 setTab("loot");
               }}
             />

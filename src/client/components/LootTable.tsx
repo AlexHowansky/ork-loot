@@ -15,6 +15,7 @@ import {
   faArrowUpRightFromSquare,
   faCircleQuestion,
   faHand,
+  faMagnifyingGlass,
   faPen,
   faPlus,
   faTrash,
@@ -41,6 +42,13 @@ const FILTER_LABEL: Record<StatusFilter, string> = {
 /** Orders item names alphabetically, ignoring case and reading digits as numbers. */
 const byName = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
+/** Folds case and accents away, so a search for "elven" finds "Elvén". */
+const fold = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
+
 export function LootTable({
   view,
   mode,
@@ -48,6 +56,8 @@ export function LootTable({
   onSessionFilter,
   statusFilter,
   onStatusFilter,
+  search,
+  onSearch,
 }: {
   view: CampaignView;
   mode: Mode;
@@ -55,6 +65,9 @@ export function LootTable({
   onSessionFilter: (v: number | "all") => void;
   statusFilter: StatusFilter;
   onStatusFilter: (v: StatusFilter) => void;
+  /** Text the item names must contain. */
+  search: string;
+  onSearch: (v: string) => void;
 }) {
   const { campaign } = view;
   const [editing, setEditing] = useState<LootView | "new" | null>(null);
@@ -70,8 +83,14 @@ export function LootTable({
   // Characters without shares can't claim loot.
   const claimants = view.characters.filter((c) => c.shares > 0);
   const canClaim = mode.kind === "gm" ? claimants.length > 0 : claimants.some((c) => c.id === mode.characterId);
+  const needle = fold(search.trim());
   const rows = view.loot
-    .filter((l) => FILTER[statusFilter](l.status) && (sessionFilter === "all" || l.sessionId === sessionFilter))
+    .filter(
+      (l) =>
+        FILTER[statusFilter](l.status) &&
+        (sessionFilter === "all" || l.sessionId === sessionFilter) &&
+        (!needle || fold(l.name).includes(needle)),
+    )
     .sort((a, b) => byName.compare(a.name, b.name) || a.id - b.id);
   // Unidentified items count as nothing, as they do in the pool.
   const shownTotal = rows.reduce((n, l) => n + (l.unidentified ? 0 : l.subtotal), 0);
@@ -170,6 +189,17 @@ export function LootTable({
             </option>
           ))}
         </select>
+        <label className="input input-sm w-48">
+          <Icon icon={faMagnifyingGlass} className="text-base-content/50" />
+          <input
+            type="search"
+            placeholder="Search by name"
+            aria-label="Search items by name"
+            value={search}
+            onChange={(e) => onSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Escape" && onSearch("")}
+          />
+        </label>
         <span className="text-sm text-base-content/70">
           {rows.length} {rows.length === 1 ? "item" : "items"} · <Money amount={shownTotal} campaign={campaign} />
         </span>
