@@ -35,15 +35,14 @@ export function campaignInfo(c: Campaign): CampaignInfo {
   };
 }
 
-/** What players see of an unidentified item in place of its details. */
-export const UNIDENTIFIED_NAME = "Unidentified item";
-
-/** A loot row for the client; players get unidentified items redacted. */
+/**
+ * A loot row for the client. Players see an unidentified item's name but
+ * not its description, link (whose page would give the price) or value.
+ */
 export function lootView(row: Loot, forGm = true): LootView {
   if (row.unidentified && !forGm) {
     return {
       ...lootView(row),
-      name: UNIDENTIFIED_NAME,
       description: null,
       link: null,
       value: null,

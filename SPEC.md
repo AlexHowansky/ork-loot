@@ -109,10 +109,10 @@ they have claimed from the pool.
   only get half value when we sell) and status.
 
 * A loot item can be marked unidentified (off by default), from a checkbox
-  on the loot form. Until the GM clears it:
-    * Players see the item only as "Unidentified item", with no
-      description, link or value; the server never sends them those. The
-      GM's loot table marks it with an "Unidentified" badge.
+  to the right of the loot form's name. Until the GM clears it:
+    * Players see the item's name, but not its description, link (whose
+      page could give its price) or value; the server never sends them
+      those. The loot table marks it with an "Unidentified" badge.
     * Players can't claim it. The GM can claim it for a character, and a
       claimed part of a stack stays unidentified.
     * Its value counts as zero everywhere: the pool, party fund, claims,

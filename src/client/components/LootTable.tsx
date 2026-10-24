@@ -227,15 +227,17 @@ export function LootTable({
                             <Icon icon={faArrowUpRightFromSquare} className="ml-1 text-xs text-base-content/50" />
                             <span className="sr-only"> (opens in a new tab)</span>
                           </a>
-                        ) : item.unidentified && !gm ? (
-                          <span className="italic">{item.name}</span>
                         ) : (
                           item.name
                         )}
-                        {item.unidentified && gm && (
+                        {item.unidentified && (
                           <span
                             className="tooltip tooltip-right ml-2 align-middle"
-                            data-tip="Hidden from players and left out of totals and splits"
+                            data-tip={
+                              gm
+                                ? "Players can't see its details or claim it; left out of totals and splits"
+                                : "Its details and value are unknown until it's identified"
+                            }
                           >
                             <span className="badge badge-sm badge-soft badge-warning gap-1 font-normal">
                               <Icon icon={faCircleQuestion} /> Unidentified

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { api } from "../api.ts";
 import { parseAmount, subtotal, toInput, formatMoney } from "../../shared/money.ts";
 import {
@@ -38,6 +38,7 @@ export function LootForm({
   const [value, setValue] = useState(toInput(item?.value ?? null, decimals));
   const [marketPct, setMarketPct] = useState(String(item?.marketPct ?? 50));
   const [unidentified, setUnidentified] = useState(item?.unidentified ?? false);
+  const unidentifiedId = useId();
   const [status, setStatus] = useState<LootStatus>(item?.status ?? "available");
   const [characterId, setCharacterId] = useState<string | null>(item?.characterId ?? null);
   const [added, setAdded] = useState(0);
@@ -117,14 +118,35 @@ export function LootForm({
             </select>
           </Field>
         )}
-        <Field label="Name" error={s.fields.name}>
-          <input
-            className={withError("input w-full", s.fields.name)}
-            data-autofocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </Field>
+        <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
+          <Field label="Name" error={s.fields.name}>
+            <input
+              className={withError("input w-full", s.fields.name)}
+              data-autofocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </Field>
+          <div className="fieldset py-1">
+            <label htmlFor={unidentifiedId} className="fieldset-legend pb-1">
+              Unidentified
+            </label>
+            <div className="flex items-start gap-2">
+              <input
+                id={unidentifiedId}
+                type="checkbox"
+                className="checkbox checkbox-sm mt-0.5"
+                checked={unidentified}
+                aria-describedby={`${unidentifiedId}-note`}
+                onChange={(e) => setUnidentified(e.target.checked)}
+              />
+              <p id={`${unidentifiedId}-note`} className="text-xs leading-snug text-base-content/60">
+                Players see only its name and can't claim it. It's worth nothing in totals and splits until
+                identified.
+              </p>
+            </div>
+          </div>
+        </div>
         <Field label="Description" error={s.fields.description}>
           <textarea
             className="textarea w-full"
@@ -208,20 +230,7 @@ export function LootForm({
             </Field>
           )}
         </div>
-        <label className="label mt-1 cursor-pointer gap-2 text-base-content">
-          <input
-            type="checkbox"
-            className="checkbox checkbox-sm"
-            checked={unidentified}
-            onChange={(e) => setUnidentified(e.target.checked)}
-          />
-          Unidentified
-        </label>
-        <p className="text-xs text-base-content/60">
-          Players see it only as “Unidentified item” and can't claim it. It counts as nothing in totals and
-          stays out of splits until it's identified.
-        </p>
-        <p className="mt-2 text-sm text-base-content/70">
+        <p className="mt-1 text-sm text-base-content/70">
           Subtotal at market:{" "}
           <span className="font-semibold tabular-nums">
             {formatMoney(preview, decimals, campaign.currencyLabel)}

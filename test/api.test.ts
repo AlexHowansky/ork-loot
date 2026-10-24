@@ -407,7 +407,7 @@ describe("loot split", () => {
     expect(after.splits.map((s) => [s.total, s.leftover])).toEqual([[1005, 1], [1003, 3]]);
   });
 
-  test("unidentified items are hidden from players and worth nothing", async () => {
+  test("unidentified items keep their details from players and are worth nothing", async () => {
     const { campaignId, sessionId, characterIds, view } = await seed();
     const [amiri] = characterIds as [string];
     const amiriCode = (await view()).characters.find((c) => c.id === amiri)!.joinCode!;
@@ -433,14 +433,15 @@ describe("loot split", () => {
 
     const play = (await player.get<PlayView>(`/api/play/${amiri}`)).body;
     expect(play.loot.find((l) => l.id === wands.id)).toMatchObject({
-      name: "Unidentified item",
+      name: "Wand of Fireballs",
       description: null,
       link: null,
       value: null,
       subtotal: 0,
       unidentified: true,
     });
-    expect(JSON.stringify(play)).not.toContain("Fireballs");
+    expect(JSON.stringify(play)).not.toContain("Shoots fire");
+    expect(JSON.stringify(play)).not.toContain("example.com/wand");
 
     // Players can't claim it; the GM can, and part of a stack stays unidentified.
     const mine = await player.post(`/api/play/${amiri}/claim`, { lootId: wands.id, quantity: 1 });
