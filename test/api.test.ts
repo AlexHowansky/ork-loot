@@ -407,6 +407,52 @@ describe("loot split", () => {
     expect(after.splits.map((s) => [s.total, s.leftover])).toEqual([[1005, 1], [1003, 3]]);
   });
 
+  test("the latest split can be undone", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri] = characterIds as [string];
+    const add = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, body);
+    // 4 shares; 1003 leaves 3 of petty cash.
+    await add({ name: "Statue", value: 2006 });
+    await add({ name: "Ring", value: 0, status: "claimed", characterId: amiri });
+    const first = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    expect((await view()).campaign.pettyCash).toBe(3);
+    // 1002 + 3 = 1005 leaves 1.
+    await add({ name: "Vase", value: 2004 });
+    const second = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    expect(second.pettyCash).toBe(3);
+
+    const undo = (id: number) => gmA.del(`/api/campaigns/${campaignId}/splits/${id}`);
+    expect((await undo(first.id)).status).toBe(409);
+    expect((await undo(second.id)).status).toBe(200);
+    let now = await view();
+    expect(now.splits.map((s) => s.id)).toEqual([first.id]);
+    expect(now.campaign.pettyCash).toBe(3);
+    expect(now.loot.find((l) => l.name === "Vase")).toMatchObject({ status: "available", splitId: null });
+    expect(now.loot.find((l) => l.name === "Statue")!.status).toBe("sold");
+
+    // A claimant who has since dropped to no shares doesn't get the claim back.
+    await gmA.patch(`/api/characters/${amiri}`, { name: "Amiri", shares: 0 });
+    expect((await undo(first.id)).status).toBe(200);
+    now = await view();
+    expect(now.splits).toHaveLength(0);
+    expect(now.campaign.pettyCash).toBe(0);
+    expect(now.loot.find((l) => l.name === "Statue")).toMatchObject({ status: "available", splitId: null });
+    expect(now.loot.find((l) => l.name === "Ring")).toMatchObject({ status: "available", characterId: null });
+    expect(now.pool.sellable).toBe(1003 + 1002);
+  });
+
+  test("an undone claim goes back to its claimant", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri] = characterIds as [string];
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Ring", value: 800, status: "claimed", characterId: amiri });
+    const s = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
+    const gmB = new Client(ctx.app);
+    await gmB.login("bob");
+    expect((await gmB.del(`/api/campaigns/${campaignId}/splits/${s.id}`)).status).toBe(404);
+    expect((await gmA.del(`/api/campaigns/${campaignId}/splits/${s.id}`)).status).toBe(200);
+    expect((await view()).loot.find((l) => l.name === "Ring")).toMatchObject({ status: "claimed", characterId: amiri });
+  });
+
   test("characters with split history can't be deleted", async () => {
     const { campaignId, sessionId, characterIds } = await seed();
     await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Sword", value: 2000 });

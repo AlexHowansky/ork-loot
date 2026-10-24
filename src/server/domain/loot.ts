@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNull, ne, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, ne, type SQL } from "drizzle-orm";
 import type { DbOrTx as Db } from "../db/client.ts";
 import {
   campaign,
@@ -225,7 +225,7 @@ export function previewSplit(db: Db, c: Campaign): SplitView {
  */
 export function runSplit(db: Db, c: Campaign): SplitView {
   const id = db.transaction((tx) => {
-    const { chars, rows, pool, allocations, leftover, total } = splitPlan(tx, c.id);
+    const { chars, rows, pool, allocations, leftover, total, pettyCash } = splitPlan(tx, c.id);
     if (pool.totalShares === 0) {
       throw badRequest("Give at least one character a share before running a split.");
     }
@@ -235,7 +235,7 @@ export function runSplit(db: Db, c: Campaign): SplitView {
     }
     const created = tx
       .insert(split)
-      .values({ campaignId: c.id, total, totalShares: pool.totalShares })
+      .values({ campaignId: c.id, total, pettyCashIn: pettyCash, totalShares: pool.totalShares })
       .returning()
       .get();
     tx.insert(splitShare)
@@ -273,4 +273,57 @@ export function runSplit(db: Db, c: Campaign): SplitView {
   const view = splitHistory(db, c.id).find((s) => s.id === id);
   if (!view) throw new AppError(500, "The split was saved but couldn't be read back.");
   return view;
+}
+
+/**
+ * Undoes the campaign's most recent split: bought items go back to their
+ * claimants and sold items back to the pool, petty cash returns to what it
+ * was, and the split leaves the history. A claim can't go back to a
+ * character who now has no shares, so that item returns to the pool.
+ */
+export function undoSplit(db: Db, c: Campaign, splitId: number): void {
+  db.transaction((tx) => {
+    const latest = tx
+      .select()
+      .from(split)
+      .where(eq(split.campaignId, c.id))
+      .orderBy(desc(split.createdAt), desc(split.id))
+      .get();
+    if (!latest || latest.id !== splitId) {
+      throw conflict(
+        "Only the most recent split can be undone. The list has been refreshed.",
+      );
+    }
+    const rows = tx.select().from(loot).where(eq(loot.splitId, splitId)).all();
+    const shares = new Map(
+      tx
+        .select({ id: character.id, shares: character.shares })
+        .from(character)
+        .where(eq(character.campaignId, c.id))
+        .all()
+        .map((ch) => [ch.id, ch.shares]),
+    );
+    for (const r of rows) {
+      const backToClaimant =
+        r.status === "bought" && r.characterId !== null && (shares.get(r.characterId) ?? 0) > 0;
+      const status: Loot["status"] = backToClaimant
+        ? "claimed"
+        : r.status === "bought" || r.status === "sold"
+          ? "available"
+          : r.status;
+      tx.update(loot)
+        .set({
+          status,
+          splitId: null,
+          characterId: status === "available" ? null : r.characterId,
+        })
+        .where(eq(loot.id, r.id))
+        .run();
+    }
+    tx.update(campaign)
+      .set({ pettyCash: latest.pettyCashIn })
+      .where(eq(campaign.id, c.id))
+      .run();
+    tx.delete(split).where(eq(split.id, splitId)).run();
+  });
 }

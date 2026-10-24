@@ -218,6 +218,7 @@ export function splitHistory(db: Db, campaignId: string): SplitView[] {
     id: s.id,
     createdAt: s.createdAt.getTime(),
     total: s.total,
+    pettyCash: s.pettyCashIn,
     totalShares: s.totalShares,
     // Whatever the shares didn't take went to petty cash.
     leftover:

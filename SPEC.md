@@ -206,3 +206,11 @@ they have claimed from the pool.
 
 * The GM sees a preview of the split before running it. Every split is kept
   in a history showing each character's share, claims and payout.
+
+* The GM can undo the most recent split, from a button in its entry in the
+  split history, after confirming. Undoing it turns its bought items back
+  into claims for the same characters and its sold items back to available,
+  puts petty cash back to what it was before the split, and removes the
+  split from the history. Older splits can then be undone in turn. A bought
+  item whose character now has 0 shares goes back to available instead,
+  since that character can't hold a claim.

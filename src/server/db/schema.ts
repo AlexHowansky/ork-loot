@@ -113,7 +113,10 @@ export const split = sqliteTable(
     campaignId: text("campaign_id")
       .notNull()
       .references(() => campaign.id, { onDelete: "cascade" }),
+    /** The loot sold plus `pettyCashIn`. */
     total: integer("total").notNull(),
+    /** The petty cash this split paid out, restored if it's undone. */
+    pettyCashIn: integer("petty_cash_in").notNull().default(0),
     totalShares: integer("total_shares").notNull(),
     createdAt: createdAt(),
   },

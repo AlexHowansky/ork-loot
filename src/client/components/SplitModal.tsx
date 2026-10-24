@@ -57,11 +57,11 @@ export function SplitModal({
             <p className="mb-2">
               Selling the pool brings in{" "}
               <Money
-                amount={preview.data.total - (preview.data.pettyCash ?? 0)}
+                amount={preview.data.total - preview.data.pettyCash}
                 campaign={campaign}
                 className="font-semibold"
               />
-              {!!preview.data.pettyCash && (
+              {preview.data.pettyCash > 0 && (
                 <>
                   , and <Money amount={preview.data.pettyCash} campaign={campaign} className="font-semibold" /> of
                   petty cash is paid out with it

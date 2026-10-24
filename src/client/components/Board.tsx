@@ -128,7 +128,7 @@ export function CampaignBoard({
               }}
             />
           )}
-          {tab === "splits" && <SplitHistory view={view} />}
+          {tab === "splits" && <SplitHistory view={view} mode={mode} />}
         </div>
       </div>
     </div>

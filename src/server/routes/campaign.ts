@@ -2,7 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { campaign, loot, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { badRequest } from "../lib/errors.ts";
-import { readJson, uuidParam, type Router } from "../lib/http.ts";
+import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { RateLimiter } from "../lib/rate-limit.ts";
 import { searchReference } from "../lib/reference-search.ts";
@@ -13,7 +13,7 @@ import {
   listCampaigns,
   ownedCampaign,
 } from "../domain/campaign.ts";
-import { previewSplit, runSplit } from "../domain/loot.ts";
+import { previewSplit, runSplit, undoSplit } from "../domain/loot.ts";
 import { campaignSchema } from "../../shared/schemas.ts";
 
 export function campaignRoutes(r: Router) {
@@ -114,6 +114,14 @@ export function campaignRoutes(r: Router) {
   r.get("/api/campaigns/:id/split/preview", (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     return previewSplit(ctx.db, c);
+  });
+
+  r.delete("/api/campaigns/:id/splits/:splitId", (ctx) => {
+    const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
+    const splitId = idParam(ctx, "splitId");
+    undoSplit(ctx.db, c, splitId);
+    logger.info("loot split undone", { requestId: ctx.requestId, campaignId: c.id, splitId });
+    return { ok: true };
   });
 
   r.post("/api/campaigns/:id/split", (ctx) => {

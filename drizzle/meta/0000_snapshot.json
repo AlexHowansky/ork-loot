@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "7bec117e-5615-48cf-9487-6bfd8ae41672",
+  "id": "d26b6437-efc4-4ac5-ab84-d385168513a8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -619,6 +619,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "petty_cash_in": {
+          "name": "petty_cash_in",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "total_shares": {
           "name": "total_shares",

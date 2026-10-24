@@ -88,6 +88,7 @@ CREATE TABLE `split` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`campaign_id` text NOT NULL,
 	`total` integer NOT NULL,
+	`petty_cash_in` integer DEFAULT 0 NOT NULL,
 	`total_shares` integer NOT NULL,
 	`created_at` integer NOT NULL,
 	FOREIGN KEY (`campaign_id`) REFERENCES `campaign`(`id`) ON UPDATE no action ON DELETE cascade

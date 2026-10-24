@@ -108,8 +108,8 @@ export interface SplitView {
   createdAt: number;
   /** The loot sold plus the petty cash paid out with it. */
   total: number;
-  /** Preview only: the petty cash included in `total`. */
-  pettyCash?: number;
+  /** The petty cash included in `total`. */
+  pettyCash: number;
   totalShares: number;
   /** What the shares couldn't divide evenly; it becomes the petty cash. */
   leftover: number;
