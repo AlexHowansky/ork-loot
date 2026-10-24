@@ -28,6 +28,7 @@ export {
   faSackDollar,
   faChevronDown,
   faCircleCheck,
+  faCircleQuestion,
   faPeopleGroup,
   faTag,
   faTrashCan,

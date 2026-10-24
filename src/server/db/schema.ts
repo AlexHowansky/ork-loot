@@ -155,6 +155,10 @@ export const loot = sqliteTable(
     quantity: integer("quantity").notNull().default(1),
     value: integer("value"),
     marketPct: integer("market_pct").notNull().default(50),
+    /** Hidden from players and worth nothing to the pool until identified. */
+    unidentified: integer("unidentified", { mode: "boolean" })
+      .notNull()
+      .default(false),
     status: text("status", { enum: LOOT_STATUSES })
       .notNull()
       .default("available"),

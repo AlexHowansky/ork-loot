@@ -46,18 +46,23 @@ export function assertCanClaim(who: Character): void {
  * Claims `quantity` of an available loot row for a character. Claiming part
  * of a stack leaves the rest available on the original row and puts the
  * claimed part on a new row. The status and quantity guards in each
- * UPDATE stop two players from claiming the same units.
+ * UPDATE stop two players from claiming the same units. Only the GM can
+ * claim an unidentified item.
  */
 export function claimLoot(
   db: Db,
   who: Character,
   lootId: number,
   quantity: number,
+  byGm = false,
 ): Loot {
   assertCanClaim(who);
   return db.transaction((tx) => {
     const item = lootInCampaign(tx, lootId, who.campaignId);
     if (item.status !== "available") throw alreadyGone();
+    if (item.unidentified && !byGm) {
+      throw badRequest("That item hasn't been identified yet, so it can't be claimed.");
+    }
     if (quantity > item.quantity) {
       throw badRequest(
         `There ${item.quantity === 1 ? "is" : "are"} only ${item.quantity} to claim.`,
@@ -103,6 +108,7 @@ export function claimLoot(
         quantity,
         value: item.value,
         marketPct: item.marketPct,
+        unidentified: item.unidentified,
         status: "claimed",
         characterId: who.id,
       })
@@ -134,6 +140,7 @@ export function releaseLoot(db: Db, who: Character, lootId: number): void {
           eq(loot.status, "available"),
           eq(loot.name, item.name),
           eq(loot.marketPct, item.marketPct),
+          eq(loot.unidentified, item.unidentified),
           sameOrNull(loot.description, item.description),
           sameOrNull(loot.link, item.link),
           sameOrNull(loot.value, item.value),
@@ -229,7 +236,10 @@ export function runSplit(db: Db, c: Campaign): SplitView {
     if (pool.totalShares === 0) {
       throw badRequest("Give at least one character a share before running a split.");
     }
-    const sold = rows.filter((r) => r.status === "available" || r.status === "claimed");
+    // Unidentified items stay in the pool until they can be valued.
+    const sold = rows.filter(
+      (r) => !r.unidentified && (r.status === "available" || r.status === "claimed"),
+    );
     if (sold.length === 0) {
       throw badRequest("There's no available or claimed loot to split.");
     }

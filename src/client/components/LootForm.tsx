@@ -37,6 +37,7 @@ export function LootForm({
   const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
   const [value, setValue] = useState(toInput(item?.value ?? null, decimals));
   const [marketPct, setMarketPct] = useState(String(item?.marketPct ?? 50));
+  const [unidentified, setUnidentified] = useState(item?.unidentified ?? false);
   const [status, setStatus] = useState<LootStatus>(item?.status ?? "available");
   const [characterId, setCharacterId] = useState<string | null>(item?.characterId ?? null);
   const [added, setAdded] = useState(0);
@@ -62,6 +63,7 @@ export function LootForm({
         quantity: Number(quantity),
         value: parsedValue,
         marketPct: Number(marketPct),
+        unidentified,
         status,
         characterId: needsCharacter ? characterId : null,
       };
@@ -74,6 +76,7 @@ export function LootForm({
         setLink("");
         setQuantity("1");
         setValue("");
+        setUnidentified(false);
         setAdded((n) => n + 1);
       } else onClose();
     });
@@ -205,7 +208,20 @@ export function LootForm({
             </Field>
           )}
         </div>
-        <p className="mt-1 text-sm text-base-content/70">
+        <label className="label mt-1 cursor-pointer gap-2 text-base-content">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={unidentified}
+            onChange={(e) => setUnidentified(e.target.checked)}
+          />
+          Unidentified
+        </label>
+        <p className="text-xs text-base-content/60">
+          Players see it only as “Unidentified item” and can't claim it. It counts as nothing in totals and
+          stays out of splits until it's identified.
+        </p>
+        <p className="mt-2 text-sm text-base-content/70">
           Subtotal at market:{" "}
           <span className="font-semibold tabular-nums">
             {formatMoney(preview, decimals, campaign.currencyLabel)}

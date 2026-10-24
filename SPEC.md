@@ -108,6 +108,18 @@ they have claimed from the pool.
   default 1), value (optional), market percentage (default 50% because we
   only get half value when we sell) and status.
 
+* A loot item can be marked unidentified (off by default), from a checkbox
+  on the loot form. Until the GM clears it:
+    * Players see the item only as "Unidentified item", with no
+      description, link or value; the server never sends them those. The
+      GM's loot table marks it with an "Unidentified" badge.
+    * Players can't claim it. The GM can claim it for a character, and a
+      claimed part of a stack stays unidentified.
+    * Its value counts as zero everywhere: the pool, party fund, claims,
+      projected payouts and the loot table's total.
+    * A split leaves it as it is, available or claimed, so it can be sold
+      at its real value once identified.
+
 * When the campaign's base reference URL is a site the app knows how to
   search (for now the Archives of Nethys at https://2e.aonprd.com/ and
   https://2e.aonsrd.com/), the loot form's link field suggests up to 10

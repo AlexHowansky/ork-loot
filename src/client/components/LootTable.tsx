@@ -9,7 +9,16 @@ import { LootForm } from "./LootForm.tsx";
 import { ClaimForm } from "./SimpleForms.tsx";
 import { useConfirm } from "./Confirm.tsx";
 import { useToast } from "./Toast.tsx";
-import { Icon, faArrowRotateLeft, faArrowUpRightFromSquare, faHand, faPen, faPlus, faTrash } from "./Icon.tsx";
+import {
+  Icon,
+  faArrowRotateLeft,
+  faArrowUpRightFromSquare,
+  faCircleQuestion,
+  faHand,
+  faPen,
+  faPlus,
+  faTrash,
+} from "./Icon.tsx";
 import type { Mode } from "./Board.tsx";
 
 export type StatusFilter = "pool" | "available" | "history" | "all";
@@ -64,7 +73,8 @@ export function LootTable({
   const rows = view.loot
     .filter((l) => FILTER[statusFilter](l.status) && (sessionFilter === "all" || l.sessionId === sessionFilter))
     .sort((a, b) => byName.compare(a.name, b.name) || a.id - b.id);
-  const shownTotal = rows.reduce((n, l) => n + l.subtotal, 0);
+  // Unidentified items count as nothing, as they do in the pool.
+  const shownTotal = rows.reduce((n, l) => n + (l.unidentified ? 0 : l.subtotal), 0);
 
   async function act(item: LootView, action: () => Promise<unknown>, done: string) {
     setBusyId(item.id);
@@ -217,8 +227,20 @@ export function LootTable({
                             <Icon icon={faArrowUpRightFromSquare} className="ml-1 text-xs text-base-content/50" />
                             <span className="sr-only"> (opens in a new tab)</span>
                           </a>
+                        ) : item.unidentified && !gm ? (
+                          <span className="italic">{item.name}</span>
                         ) : (
                           item.name
+                        )}
+                        {item.unidentified && gm && (
+                          <span
+                            className="tooltip tooltip-right ml-2 align-middle"
+                            data-tip="Hidden from players and left out of totals and splits"
+                          >
+                            <span className="badge badge-sm badge-soft badge-warning gap-1 font-normal">
+                              <Icon icon={faCircleQuestion} /> Unidentified
+                            </span>
+                          </span>
                         )}
                       </div>
                       <div className="flex flex-wrap items-center gap-x-1 sm:hidden">
@@ -233,7 +255,9 @@ export function LootTable({
                     </td>
                     <td className="text-right tabular-nums">{item.quantity}</td>
                     <td className="hidden text-right sm:table-cell">
-                      {item.value === null ? (
+                      {item.unidentified && !gm ? (
+                        <span className="text-base-content/50">?</span>
+                      ) : item.value === null ? (
                         <span className="text-base-content/50">—</span>
                       ) : (
                         <Money amount={item.value} campaign={campaign} />
@@ -241,7 +265,15 @@ export function LootTable({
                     </td>
                     <td className="hidden text-right tabular-nums sm:table-cell">{item.marketPct}%</td>
                     <td className="text-right font-medium">
-                      <Money amount={item.subtotal} campaign={campaign} />
+                      {item.unidentified && !gm ? (
+                        <span className="text-base-content/50">?</span>
+                      ) : (
+                        <Money
+                          amount={item.subtotal}
+                          campaign={campaign}
+                          className={item.unidentified ? "text-base-content/50 line-through" : undefined}
+                        />
+                      )}
                     </td>
                     <td className="hidden sm:table-cell">
                       <StatusBadge status={item.status} />
@@ -285,7 +317,7 @@ export function LootTable({
                             <Icon icon={faTrash} />
                           </button>
                         </>
-                      ) : item.status === "available" && canClaim ? (
+                      ) : item.status === "available" && canClaim && !item.unidentified ? (
                         claimButton(item)
                       ) : mine && item.status === "claimed" ? (
                         releaseButton(item)

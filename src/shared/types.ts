@@ -80,6 +80,11 @@ export interface LootView {
   quantity: number;
   value: number | null;
   marketPct: number;
+  /**
+   * Players see such an item only as "Unidentified item", with no
+   * description, link or value; it counts as zero in every total.
+   */
+  unidentified: boolean;
   status: LootStatus;
   characterId: string | null;
   splitId: number | null;

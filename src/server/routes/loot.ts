@@ -97,7 +97,7 @@ export function lootRoutes(r: Router) {
     const { loot: item, campaignId } = ownedLoot(ctx.db, requireGm(ctx).id, idParam(ctx));
     const { characterId, quantity } = await readJson(ctx, gmClaimSchema);
     const who = campaignCharacter(ctx.db, campaignId, characterId);
-    const row = claimLoot(ctx.db, who, item.id, quantity);
+    const row = claimLoot(ctx.db, who, item.id, quantity, true);
     logger.info("loot claimed by gm", {
       requestId: ctx.requestId,
       characterId: who.id,

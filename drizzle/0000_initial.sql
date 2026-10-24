@@ -54,6 +54,7 @@ CREATE TABLE `loot` (
 	`quantity` integer DEFAULT 1 NOT NULL,
 	`value` integer,
 	`market_pct` integer DEFAULT 50 NOT NULL,
+	`unidentified` integer DEFAULT false NOT NULL,
 	`status` text DEFAULT 'available' NOT NULL,
 	`character_id` text,
 	`split_id` integer,

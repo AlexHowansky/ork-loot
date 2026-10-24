@@ -101,6 +101,7 @@ const lootFields = z.object({
     .int({ error: "Market % must be a whole number." })
     .min(0, { error: "Market % must be 0 to 100." })
     .max(100, { error: "Market % must be 0 to 100." }),
+  unidentified: z.boolean(),
   status: z.enum(LOOT_STATUSES),
   characterId: z.uuid({ error: "Choose a character." }).nullable(),
 });
@@ -109,6 +110,7 @@ export const lootSchema = lootFields.extend({
   quantity: lootFields.shape.quantity.default(1),
   value: lootFields.shape.value.default(null),
   marketPct: lootFields.shape.marketPct.default(50),
+  unidentified: lootFields.shape.unidentified.default(false),
   status: lootFields.shape.status.default("available"),
   characterId: lootFields.shape.characterId.default(null),
 });

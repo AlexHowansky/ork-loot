@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d26b6437-efc4-4ac5-ab84-d385168513a8",
+  "id": "f149c724-b965-4e3c-aa82-ec911f7345a9",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "campaign": {
@@ -384,6 +384,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": 50
+        },
+        "unidentified": {
+          "name": "unidentified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
         },
         "status": {
           "name": "status",

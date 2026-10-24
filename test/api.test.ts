@@ -407,6 +407,61 @@ describe("loot split", () => {
     expect(after.splits.map((s) => [s.total, s.leftover])).toEqual([[1005, 1], [1003, 3]]);
   });
 
+  test("unidentified items are hidden from players and worth nothing", async () => {
+    const { campaignId, sessionId, characterIds, view } = await seed();
+    const [amiri] = characterIds as [string];
+    const amiriCode = (await view()).characters.find((c) => c.id === amiri)!.joinCode!;
+    const { player } = await join(amiriCode);
+    const add = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, body);
+    await add({ name: "Sword", value: 2000 });
+    const wands = (
+      await add({
+        name: "Wand of Fireballs",
+        description: "Shoots fire",
+        link: "https://example.com/wand",
+        quantity: 2,
+        value: 9000,
+        unidentified: true,
+      })
+    ).body;
+    expect(wands.unidentified).toBe(true);
+
+    // The GM sees everything, but the pool doesn't count the wands.
+    const gmView = await view();
+    expect(gmView.loot.find((l) => l.id === wands.id)).toMatchObject({ name: "Wand of Fireballs", value: 9000 });
+    expect(gmView.pool.sellable).toBe(1000);
+
+    const play = (await player.get<PlayView>(`/api/play/${amiri}`)).body;
+    expect(play.loot.find((l) => l.id === wands.id)).toMatchObject({
+      name: "Unidentified item",
+      description: null,
+      link: null,
+      value: null,
+      subtotal: 0,
+      unidentified: true,
+    });
+    expect(JSON.stringify(play)).not.toContain("Fireballs");
+
+    // Players can't claim it; the GM can, and part of a stack stays unidentified.
+    const mine = await player.post(`/api/play/${amiri}/claim`, { lootId: wands.id, quantity: 1 });
+    expect(mine.status).toBe(400);
+    expect(mine.body.error).toContain("identified");
+    const claimed = await gmA.post(`/api/loot/${wands.id}/claim`, { characterId: amiri, quantity: 1 });
+    expect(claimed.body).toMatchObject({ unidentified: true, status: "claimed" });
+    expect((await view()).characters.find((c) => c.id === amiri)!.claimed).toBe(0);
+
+    // A split leaves both wand rows where they were.
+    expect((await gmA.post(`/api/campaigns/${campaignId}/split`)).status).toBe(200);
+    let now = await view();
+    expect(now.loot.filter((l) => l.unidentified).map((l) => l.status).sort()).toEqual(["available", "claimed"]);
+    expect(now.loot.find((l) => l.name === "Sword")!.status).toBe("sold");
+
+    // Identified, they count again.
+    await gmA.patch(`/api/loot/${wands.id}`, { unidentified: false });
+    now = await view();
+    expect(now.pool.sellable).toBe(4500);
+  });
+
   test("the latest split can be undone", async () => {
     const { campaignId, sessionId, characterIds, view } = await seed();
     const [amiri] = characterIds as [string];

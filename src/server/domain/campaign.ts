@@ -35,7 +35,21 @@ export function campaignInfo(c: Campaign): CampaignInfo {
   };
 }
 
-export function lootView(row: Loot): LootView {
+/** What players see of an unidentified item in place of its details. */
+export const UNIDENTIFIED_NAME = "Unidentified item";
+
+/** A loot row for the client; players get unidentified items redacted. */
+export function lootView(row: Loot, forGm = true): LootView {
+  if (row.unidentified && !forGm) {
+    return {
+      ...lootView(row),
+      name: UNIDENTIFIED_NAME,
+      description: null,
+      link: null,
+      value: null,
+      subtotal: 0,
+    };
+  }
   return {
     id: row.id,
     sessionId: row.sessionId,
@@ -45,6 +59,7 @@ export function lootView(row: Loot): LootView {
     quantity: row.quantity,
     value: row.value,
     marketPct: row.marketPct,
+    unidentified: row.unidentified,
     status: row.status,
     characterId: row.characterId,
     splitId: row.splitId,
@@ -88,6 +103,8 @@ export function computePool(
   let claimedTotal = 0;
   const claimedBy = new Map<string, number>();
   for (const r of rows) {
+    // Unidentified items are worth nothing until the GM identifies them.
+    if (r.unidentified) continue;
     const sub = subtotal(r.quantity, r.value, r.marketPct);
     if (r.status === "available") sellable += sub;
     else if (r.status === "party") party += sub;
@@ -194,7 +211,7 @@ export function campaignView(
       notes: s.notes,
       itemCount: counts.get(s.id) ?? 0,
     })),
-    loot: rows.map(lootView),
+    loot: rows.map((r) => lootView(r, opts.forGm)),
     pool,
     splits: splitHistory(db, c.id),
   };
