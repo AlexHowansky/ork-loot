@@ -191,19 +191,18 @@ export function LootTable({
   /** A column header that sorts the table; choosing it again reverses the order. */
   const sortHeader = (key: SortKey, label: string, className = "") => {
     const active = sort.key === key;
-    const right = className.includes("text-right");
     return (
       <th className={className} aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}>
         <button
           type="button"
-          className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-base-content ${right ? "flex-row-reverse" : ""} ${active ? "text-base-content" : ""}`}
+          className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap hover:text-base-content ${active ? "text-base-content" : ""}`}
           onClick={() => onSort({ key, dir: active && sort.dir === "asc" ? "desc" : "asc" })}
         >
-          {label}
           <Icon
             icon={active ? (sort.dir === "asc" ? faSortUp : faSortDown) : faSort}
             className={active ? "" : "text-base-content/30"}
           />
+          {label}
         </button>
       </th>
     );
