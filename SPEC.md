@@ -65,16 +65,19 @@ the size of the share that each player gets when selling based on what items
 they have claimed from the pool.
 
 * GMs are created by a CLI tool. GMs sign in with their email address and
-  password.
+  password. After 10 failed sign-ins for one address within 15 minutes,
+  sign-ins for it are paused until the 15 minutes are up, wherever they
+  come from.
 
 * The GM sign-in panel has a "Forgot password?" link. It asks for an email
   address and always answers the same way, so it doesn't reveal which
   addresses belong to GMs. A GM's address is emailed a link that works once
-  and for one hour; asking again replaces the earlier link. The link opens a
-  page to choose a new password (at least 10 characters, typed twice).
-  Saving it signs the GM out everywhere else and signs them in. Pages they
-  still have open in other browsers go back to the start at once, saying
-  why.
+  and for one hour; asking again replaces the earlier link. An address can
+  be asked about at most 3 times an hour, whether or not it belongs to a
+  GM. The link opens a page to choose a new password (at least 10
+  characters, typed twice). Saving it signs the GM out everywhere else and
+  signs them in. Pages they still have open in other browsers go back to
+  the start at once, saying why.
 
 * GMs can view, create, edit, and delete their own campaigns.
 

@@ -11,6 +11,22 @@ export class RateLimiter {
 
   /** Records an attempt; throws a 429 when the limit is exceeded. */
   hit(key: string) {
+    this.check(key);
+    this.record(key);
+  }
+
+  /** Throws a 429 if `key` has used up its attempts, without counting one. */
+  check(key: string) {
+    const now = Date.now();
+    const entry = this.hits.get(key);
+    if (!entry || entry.resetAt <= now || entry.count < this.limit) return;
+    const minutes = Math.ceil((entry.resetAt - now) / 60_000);
+    const wait = minutes <= 1 ? "a minute" : `${minutes} minutes`;
+    throw new AppError(429, `Too many attempts. Please wait ${wait} and try again.`);
+  }
+
+  /** Counts one attempt against `key`. */
+  record(key: string) {
     const now = Date.now();
     const entry = this.hits.get(key);
     if (!entry || entry.resetAt <= now) {
@@ -19,12 +35,6 @@ export class RateLimiter {
       return;
     }
     entry.count++;
-    if (entry.count > this.limit) {
-      throw new AppError(
-        429,
-        "Too many attempts. Please wait a minute and try again.",
-      );
-    }
   }
 
   private prune(now: number) {

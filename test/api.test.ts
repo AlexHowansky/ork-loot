@@ -85,12 +85,39 @@ describe("auth", () => {
     expect(last).toBe(429);
   });
 
+  test("pauses sign-ins for an address after repeated failures from anywhere", async () => {
+    for (let i = 0; i < 10; i++) {
+      const res = await new Client(ctx.app, `10.1.0.${i}`).login("alice@example.com", "wrong");
+      expect(res.status).toBe(401);
+    }
+    const fresh = new Client(ctx.app, "10.2.0.1");
+    const res = await fresh.login("alice@example.com");
+    expect(res.status).toBe(429);
+    expect(res.body.error).toContain("15 minutes");
+    expect((await fresh.login("bob@example.com")).status).toBe(200);
+  });
+
+  test("successful sign-ins don't count against an address", async () => {
+    for (let i = 0; i < 12; i++) {
+      expect((await new Client(ctx.app, `10.1.0.${i}`).login("alice@example.com")).status).toBe(
+        200,
+      );
+    }
+  });
+
   describe("behind a reverse proxy", () => {
-    /** A failed login from `forwardedFor`, arriving through the proxy at 10.0.0.9. */
-    async function loginVia(app: ReturnType<typeof makeApp>["app"], forwardedFor: string) {
+    /**
+     * A failed login from `forwardedFor`, arriving through the proxy at
+     * 10.0.0.9. Callers vary `email` so only the IP limit can trip.
+     */
+    async function loginVia(
+      app: ReturnType<typeof makeApp>["app"],
+      forwardedFor: string,
+      email: string,
+    ) {
       const res = await new Client(app, "10.0.0.9").raw("POST", "/api/auth/login", {
         headers: { "content-type": "application/json", "x-forwarded-for": forwardedFor },
-        body: JSON.stringify({ email: "alice@example.com", password: "wrong" }),
+        body: JSON.stringify({ email, password: "wrong" }),
       });
       return res.status;
     }
@@ -98,22 +125,28 @@ describe("auth", () => {
     test("rate limits each forwarded client separately when trusted", async () => {
       const { app } = makeApp({ trustProxy: 1 });
       let last = 0;
-      for (let i = 0; i < 12; i++) last = await loginVia(app, "203.0.113.1");
+      for (let i = 0; i < 12; i++) {
+        last = await loginVia(app, "203.0.113.1", `gm${i}@example.com`);
+      }
       expect(last).toBe(429);
-      expect(await loginVia(app, "203.0.113.2")).toBe(401);
+      expect(await loginVia(app, "203.0.113.2", "bob@example.com")).toBe(401);
     });
 
     test("ignores addresses the client put in front of the proxy's", async () => {
       const { app } = makeApp({ trustProxy: 1 });
       let last = 0;
-      for (let i = 0; i < 12; i++) last = await loginVia(app, `198.51.100.${i}, 203.0.113.1`);
+      for (let i = 0; i < 12; i++) {
+        last = await loginVia(app, `198.51.100.${i}, 203.0.113.1`, `gm${i}@example.com`);
+      }
       expect(last).toBe(429);
     });
 
     test("ignores X-Forwarded-For unless a proxy is trusted", async () => {
       const { app } = makeApp();
       let last = 0;
-      for (let i = 0; i < 12; i++) last = await loginVia(app, `203.0.113.${i}`);
+      for (let i = 0; i < 12; i++) {
+        last = await loginVia(app, `203.0.113.${i}`, `gm${i}@example.com`);
+      }
       expect(last).toBe(429);
     });
   });
@@ -160,6 +193,18 @@ describe("password reset", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true });
     expect(sentMail).toHaveLength(0);
+  });
+
+  test("limits requests for one address, from anywhere", async () => {
+    for (const email of ["alice@example.com", "mallory@example.com"]) {
+      for (let i = 0; i < 3; i++) {
+        const res = await new Client(ctx.app, `10.1.0.${i}`).post("/api/auth/forgot", { email });
+        expect(res.status).toBe(200);
+      }
+      const res = await new Client(ctx.app, "10.2.0.1").post("/api/auth/forgot", { email });
+      expect(res.status).toBe(429);
+    }
+    expect(sentMail).toHaveLength(3);
   });
 
   test("sets the new password, signs in, and signs out elsewhere", async () => {

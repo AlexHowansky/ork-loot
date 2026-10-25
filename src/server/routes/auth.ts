@@ -43,10 +43,24 @@ function me(ctx: Ctx): Me {
   return { gm: currentGm(ctx), characters };
 }
 
+/** Runs an email-keyed limit, logging (without the address) when it trips. */
+function limitByEmail(ctx: Ctx, what: string, limit: () => void) {
+  try {
+    limit();
+  } catch (err) {
+    logger.warn(`${what} paused for one address`, { requestId: ctx.requestId, ip: ctx.ip });
+    throw err;
+  }
+}
+
 export function authRoutes(r: Router) {
   const loginLimiter = new RateLimiter(10, 60_000);
+  // Only failed sign-ins count against an address.
+  const loginEmailLimiter = new RateLimiter(10, 15 * 60_000);
   const joinLimiter = new RateLimiter(10, 60_000);
   const forgotLimiter = new RateLimiter(5, 15 * 60_000);
+  // Counted for every address, known or not, so a 429 reveals nothing.
+  const forgotEmailLimiter = new RateLimiter(3, 60 * 60_000);
   const resetLimiter = new RateLimiter(10, 60_000);
 
   r.get("/api/auth/me", me);
@@ -54,8 +68,10 @@ export function authRoutes(r: Router) {
   r.post("/api/auth/login", async (ctx) => {
     loginLimiter.hit(ctx.ip);
     const { email, password } = await readJson(ctx, loginSchema);
+    limitByEmail(ctx, "login", () => loginEmailLimiter.check(email));
     const gm = await verifyCredentials(ctx.db, email, password);
     if (!gm) {
+      loginEmailLimiter.record(email);
       logger.warn("login failed", { requestId: ctx.requestId, ip: ctx.ip });
       throw new AppError(401, "That email address and password don't match.");
     }
@@ -72,6 +88,7 @@ export function authRoutes(r: Router) {
   r.post("/api/auth/forgot", async (ctx) => {
     forgotLimiter.hit(ctx.ip);
     const { email } = await readJson(ctx, forgotSchema);
+    limitByEmail(ctx, "password reset", () => forgotEmailLimiter.hit(email));
     const row = ctx.db.select().from(gm).where(eq(gm.email, email)).get();
     if (!row) {
       logger.info("password reset for unknown address", {
