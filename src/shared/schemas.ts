@@ -52,18 +52,21 @@ export const emailSchema = z
   .min(1, { error: "Enter your email address." })
   .pipe(z.email({ error: "Enter a valid email address, like name@example.com." }));
 
+export const MIN_PASSWORD = 10;
+export const MAX_PASSWORD = 200;
+
+const tooLong = { error: `Keep the password to ${MAX_PASSWORD} characters.` };
+
 export const loginSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, { error: "Enter your password." }),
+  password: z.string().min(1, { error: "Enter your password." }).max(MAX_PASSWORD, tooLong),
 });
-
-export const MIN_PASSWORD = 10;
 
 /** A password being chosen, as opposed to one being checked. */
 export const newPasswordSchema = z
   .string({ error: "Enter a new password." })
   .min(MIN_PASSWORD, { error: `Passwords must be at least ${MIN_PASSWORD} characters.` })
-  .max(200, { error: "Keep the password to 200 characters." });
+  .max(MAX_PASSWORD, tooLong);
 
 export const forgotSchema = z.object({ email: emailSchema });
 

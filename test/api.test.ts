@@ -73,6 +73,12 @@ describe("auth", () => {
     expect(res.body.fields.email).toContain("valid email address");
   });
 
+  test("refuses an overlong password before hashing it", async () => {
+    const res = await new Client(ctx.app).login("alice@example.com", "x".repeat(201));
+    expect(res.status).toBe(400);
+    expect(res.body.fields.password).toContain("200 characters");
+  });
+
   test("logout ends the session", async () => {
     await gmA.post("/api/auth/logout");
     expect((await gmA.get("/api/campaigns")).status).toBe(401);
