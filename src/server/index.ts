@@ -17,6 +17,18 @@ if (production && !process.env.APP_URL) {
   logger.warn("APP_URL is not set; links in emails will point at localhost");
 }
 
+const trustProxyRaw = process.env.TRUST_PROXY ?? "0";
+let trustProxy = Number(trustProxyRaw);
+if (!Number.isInteger(trustProxy) || trustProxy < 0) {
+  logger.warn("TRUST_PROXY must be a whole number of proxies; ignoring it", {
+    value: trustProxyRaw,
+  });
+  trustProxy = 0;
+}
+if (trustProxy > 0) {
+  logger.info("reading client IPs from X-Forwarded-For", { trustProxy });
+}
+
 const smtpHost = process.env.SMTP_HOST;
 if (!smtpHost) {
   (production ? logger.warn : logger.info)(
@@ -39,6 +51,7 @@ const app = createApp({
   secureCookies: production || process.env.SECURE_COOKIES === "1",
   mailer,
   appUrl,
+  trustProxy,
 });
 
 const server = Bun.serve({

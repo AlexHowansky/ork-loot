@@ -5,6 +5,7 @@ import { createApp } from "../src/server/app.ts";
 import { openDb, type Db } from "../src/server/db/client.ts";
 import { gm } from "../src/server/db/schema.ts";
 import { hashPassword } from "../src/server/lib/auth.ts";
+import type { AppConfig } from "../src/server/lib/http.ts";
 import type { Mail, Mailer } from "../src/server/lib/mail.ts";
 
 export const ORIGIN = "http://loot.test";
@@ -29,7 +30,7 @@ const stubMailer: Mailer = {
   },
 };
 
-export function makeApp() {
+export function makeApp(overrides: Partial<AppConfig> = {}) {
   const db = openDb(":memory:");
   const uploadDir = mkdtempSync(join(tmpdir(), "phat-loot-"));
   referenceCalls.length = 0;
@@ -42,6 +43,7 @@ export function makeApp() {
     fetch: stubFetch,
     mailer: stubMailer,
     appUrl: ORIGIN,
+    ...overrides,
   });
   return { db, uploadDir, app };
 }

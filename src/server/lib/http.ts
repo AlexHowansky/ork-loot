@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { z } from "zod";
 import type { Db } from "../db/client.ts";
 import { AppError, badRequest } from "./errors.ts";
@@ -16,6 +17,13 @@ export interface AppConfig {
   mailer: Mailer;
   /** The public address of the app, e.g. https://loot.example.com, for links in mail. */
   appUrl: string;
+  /**
+   * How many reverse proxies sit in front of the app. When above 0 the
+   * client IP is read from `X-Forwarded-For`; 0 (the default) uses the
+   * socket address. Only set this when the app is reachable solely through
+   * those proxies, or clients can choose their own IP.
+   */
+  trustProxy?: number;
 }
 
 export interface Ctx {
@@ -48,6 +56,23 @@ const CLIENT_ID = /^[A-Za-z0-9_-]{1,36}$/;
 export function clientIdOf(req: Request): string | null {
   const raw = req.headers.get("x-client-id");
   return raw !== null && CLIENT_ID.test(raw) ? raw : null;
+}
+
+/**
+ * The client's IP. With `trustProxy` proxies in front, it's the entry that
+ * many from the right of `X-Forwarded-For`: each proxy appends the address
+ * it saw, so entries further left were written by the client and can't be
+ * trusted. Falls back to the socket address when the header doesn't hold a
+ * usable entry.
+ */
+export function clientIpOf(req: Request, socketIp: string, trustProxy: number): string {
+  if (trustProxy <= 0) return socketIp;
+  const hops = (req.headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const ip = hops[hops.length - trustProxy];
+  return ip !== undefined && isIP(ip) ? ip : socketIp;
 }
 
 export type Handler = (ctx: Ctx) => unknown | Promise<unknown>;

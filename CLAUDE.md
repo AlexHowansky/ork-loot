@@ -37,6 +37,12 @@ The product specification (terms and features) is in @SPEC.md.
   the request's Host header. Password reset tokens travel in the URL
   fragment so they stay out of server logs and Referer headers.
 
+* Rate limits and auth warnings key on the client IP, `ctx.ip`. That's the
+  socket address unless `TRUST_PROXY` names how many reverse proxies sit in
+  front of the app; then it's the entry that many from the right of
+  `X-Forwarded-For` (anything further left is client-supplied). Only set it
+  when the app can't be reached except through those proxies.
+
 * Use a SQL abstraction layer for local storage. For now, we'll use SQLite in
   test and prod, but we might switch to another database later. Migrations
   live in `drizzle/` and are applied on startup.
@@ -101,8 +107,8 @@ The product specification (terms and features) is in @SPEC.md.
 * `bun test` runs the unit, API and UI-rule tests; `bun run typecheck` runs
   tsc.
 * `bun run db:generate` writes a migration after a schema change.
-* `DB_PATH`, `UPLOAD_DIR`, `PORT`, `LOG_LEVEL` and `NODE_ENV` configure the
-  server. Data defaults to `data/`, which is not committed.
+* `DB_PATH`, `UPLOAD_DIR`, `PORT`, `LOG_LEVEL`, `NODE_ENV` and `TRUST_PROXY`
+  configure the server. Data defaults to `data/`, which is not committed.
 * `APP_URL` is the app's public address (default `http://localhost:PORT`).
   `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`, `SMTP_PASS` and `SMTP_FROM`
   configure outgoing mail. Without `SMTP_HOST`, as in dev, password reset

@@ -3,6 +3,7 @@ import { AppError } from "./lib/errors.ts";
 import { createEventBus } from "./lib/events.ts";
 import {
   clientIdOf,
+  clientIpOf,
   json,
   parseCookies,
   Router,
@@ -80,7 +81,7 @@ export function createApp(config: AppConfig) {
   /** `keepOpen` lifts the idle timeout for this request (a live stream). */
   async function handle(
     req: Request,
-    ip = "unknown",
+    socketIp = "unknown",
     keepOpen: () => void = () => {},
   ): Promise<Response> {
     const started = performance.now();
@@ -93,7 +94,7 @@ export function createApp(config: AppConfig) {
       params: {},
       config,
       db: config.db,
-      ip,
+      ip: clientIpOf(req, socketIp, config.trustProxy ?? 0),
       requestId,
       cookies: parseCookies(req.headers.get("cookie")),
       setCookies: [],

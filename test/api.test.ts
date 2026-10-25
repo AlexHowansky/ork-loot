@@ -85,6 +85,39 @@ describe("auth", () => {
     expect(last).toBe(429);
   });
 
+  describe("behind a reverse proxy", () => {
+    /** A failed login from `forwardedFor`, arriving through the proxy at 10.0.0.9. */
+    async function loginVia(app: ReturnType<typeof makeApp>["app"], forwardedFor: string) {
+      const res = await new Client(app, "10.0.0.9").raw("POST", "/api/auth/login", {
+        headers: { "content-type": "application/json", "x-forwarded-for": forwardedFor },
+        body: JSON.stringify({ email: "alice@example.com", password: "wrong" }),
+      });
+      return res.status;
+    }
+
+    test("rate limits each forwarded client separately when trusted", async () => {
+      const { app } = makeApp({ trustProxy: 1 });
+      let last = 0;
+      for (let i = 0; i < 12; i++) last = await loginVia(app, "203.0.113.1");
+      expect(last).toBe(429);
+      expect(await loginVia(app, "203.0.113.2")).toBe(401);
+    });
+
+    test("ignores addresses the client put in front of the proxy's", async () => {
+      const { app } = makeApp({ trustProxy: 1 });
+      let last = 0;
+      for (let i = 0; i < 12; i++) last = await loginVia(app, `198.51.100.${i}, 203.0.113.1`);
+      expect(last).toBe(429);
+    });
+
+    test("ignores X-Forwarded-For unless a proxy is trusted", async () => {
+      const { app } = makeApp();
+      let last = 0;
+      for (let i = 0; i < 12; i++) last = await loginVia(app, `203.0.113.${i}`);
+      expect(last).toBe(429);
+    });
+  });
+
   test("blocks cross-origin writes", async () => {
     const res = await gmA.raw("POST", "/api/campaigns", {
       headers: { origin: "https://evil.test", "content-type": "application/json" },

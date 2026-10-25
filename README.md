@@ -67,6 +67,7 @@ The server reads these environment variables:
 | `LOG_LEVEL`      | `info`           | Logging verbosity                          |
 | `NODE_ENV`       |                  | `production` turns on secure cookies and JSON logs |
 | `SECURE_COOKIES` |                  | Set to `1` for secure cookies outside production |
+| `TRUST_PROXY`    | `0`              | Number of reverse proxies in front of the app; when set, client IPs come from `X-Forwarded-For` |
 
 The `data/` directory is not committed.
 
