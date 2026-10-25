@@ -1,9 +1,11 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, sql } from "drizzle-orm";
 import type { DbOrTx as Db } from "../db/client.ts";
 import {
   campaign,
   character,
+  joinCode,
   loot,
+  observer,
   pettyCashEntry,
   session,
   split,
@@ -195,8 +197,8 @@ export function listCampaigns(db: Db, gmId: string): CampaignSummary[] {
 }
 
 /**
- * Everything the campaign board shows. Join codes, player links and who is
- * online are included only for the GM.
+ * Everything the campaign board shows. Join codes, player links, who is
+ * online and the observers are included only for the GM.
  */
 export function campaignView(
   db: Db,
@@ -207,8 +209,9 @@ export function campaignView(
   },
 ): CampaignView {
   const chars = db
-    .select()
+    .select({ ...getTableColumns(character), joinCode: joinCode.code })
     .from(character)
+    .leftJoin(joinCode, eq(joinCode.characterId, character.id))
     .where(eq(character.campaignId, c.id))
     .orderBy(asc(character.name))
     .all();
@@ -255,6 +258,24 @@ export function campaignView(
     pool,
     splits: splitHistory(db, c.id),
     pettyCash: pettyCashLedger(db, c.id),
+    ...(opts.forGm
+      ? {
+          observers: db
+            .select({ ...getTableColumns(observer), joinCode: joinCode.code })
+            .from(observer)
+            .leftJoin(joinCode, eq(joinCode.observerId, observer.id))
+            .where(eq(observer.campaignId, c.id))
+            .orderBy(asc(observer.name))
+            .all()
+            .map((o) => ({
+              id: o.id,
+              name: o.name,
+              joinCode: o.joinCode,
+              hasPlayer: o.playerId !== null,
+              online: opts.isOnline?.(o) ?? false,
+            })),
+        }
+      : {}),
   };
 }
 

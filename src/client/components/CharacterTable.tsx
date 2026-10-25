@@ -6,10 +6,9 @@ import { Money } from "./Money.tsx";
 import { CharacterForm } from "./SimpleForms.tsx";
 import { useConfirm } from "./Confirm.tsx";
 import { useToast } from "./Toast.tsx";
-import { Icon, faArrowsRotate, faCircleCheck, faCopy, faPen, faPlus, faTrash, faWifi } from "./Icon.tsx";
+import { Icon, faArrowsRotate, faPen, faPlus, faTrash } from "./Icon.tsx";
+import { JoinCodeStatus } from "./JoinCode.tsx";
 import type { Mode } from "./Board.tsx";
-
-const pretty = (code: string) => `${code.slice(0, 5)}-${code.slice(5)}`;
 
 export function CharacterTable({
   view,
@@ -35,15 +34,6 @@ export function CharacterTable({
       toast(errorMessage(err), "error");
     } finally {
       refresh();
-    }
-  }
-
-  async function copy(code: string) {
-    try {
-      await navigator.clipboard.writeText(pretty(code));
-      toast("Code copied.");
-    } catch {
-      toast("Couldn't copy automatically. Select the code and copy it instead.", "error");
     }
   }
 
@@ -130,35 +120,13 @@ export function CharacterTable({
                     </td>
                     {gm && (
                       <td className="whitespace-nowrap">
-                        {c.joinCode ? (
-                          <span className="inline-flex items-center gap-1">
-                            <code className="font-mono tracking-wider select-all">{pretty(c.joinCode)}</code>
-                            <button
-                              type="button"
-                              className="btn btn-ghost btn-xs btn-square"
-                              aria-label={`Copy ${c.name}'s join code`}
-                              onClick={() => copy(c.joinCode!)}
-                            >
-                              <Icon icon={faCopy} />
-                            </button>
-                          </span>
-                        ) : c.hasPlayer ? (
-                          <span className="inline-flex items-center gap-1">
-                            <span className="badge badge-sm badge-success badge-soft">
-                              <Icon icon={faCircleCheck} /> Joined
-                            </span>
-                            {c.online && (
-                              <span
-                                className="badge badge-sm badge-info badge-soft"
-                                title={`${c.name}'s player has the campaign open now.`}
-                              >
-                                <Icon icon={faWifi} /> Online
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span className="text-base-content/60 text-sm">No code</span>
-                        )}
+                        <JoinCodeStatus
+                          name={c.name}
+                          joinCode={c.joinCode}
+                          hasPlayer={c.hasPlayer}
+                          online={c.online}
+                          onlineTitle={`${c.name}'s player has the campaign open now.`}
+                        />
                       </td>
                     )}
                     <td className="text-right whitespace-nowrap">

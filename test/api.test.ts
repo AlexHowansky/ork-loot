@@ -9,9 +9,17 @@ import {
   sentMail,
   setReferenceReply,
 } from "./helpers.ts";
-import { campaign, passwordReset } from "../src/server/db/schema.ts";
+import { campaign, joinCode, passwordReset } from "../src/server/db/schema.ts";
+import { issueJoinCode } from "../src/server/lib/auth.ts";
 import { MAX_MONEY } from "../src/shared/money.ts";
-import type { CampaignView, CharacterView, LiveNotice, PlayView } from "../src/shared/types.ts";
+import type {
+  CampaignView,
+  CharacterView,
+  LiveNotice,
+  Me,
+  PlayView,
+  WatchView,
+} from "../src/shared/types.ts";
 
 let ctx: ReturnType<typeof makeApp>;
 let gmA: Client;
@@ -397,6 +405,131 @@ describe("join codes", () => {
       expect(c.joinCode).toBeUndefined();
       expect(c.hasPlayer).toBeUndefined();
     }
+  });
+});
+
+describe("observers", () => {
+  /** A seeded campaign with one observer, joined by a fresh browser. */
+  async function observe() {
+    const seeded = await seed();
+    const added = await gmA.post(`/api/campaigns/${seeded.campaignId}/observers`, { name: "Nana" });
+    expect(added.status).toBe(200);
+    const code = (await seeded.view()).observers!.find((o) => o.id === added.body.id)!.joinCode!;
+    const { player, res } = await join(code);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ observerId: added.body.id });
+    return { ...seeded, observerId: added.body.id as string, player };
+  }
+
+  test("an observer sees what players see, without being a character", async () => {
+    const { campaignId, observerId, player, view } = await observe();
+    const me = (await player.get<Me>("/api/auth/me")).body;
+    expect(me.characters).toEqual([]);
+    expect(me.observers.map((o) => [o.id, o.name, o.campaignId])).toEqual([
+      [observerId, "Nana", campaignId],
+    ]);
+    const watched = await player.get<WatchView>(`/api/watch/${observerId}`);
+    expect(watched.status).toBe(200);
+    expect(watched.body.observer).toEqual({ id: observerId, name: "Nana" });
+    expect(watched.body.observers).toBeUndefined();
+    expect(watched.body.characters.map((c) => c.name)).toEqual(["Amiri", "Ezren", "Valeros"]);
+    for (const c of watched.body.characters) expect(c.joinCode).toBeUndefined();
+    // Observers have no share in the pool.
+    expect(watched.body.pool.totalShares).toBe(4);
+    const gm = await view();
+    expect(gm.observers).toEqual([
+      { id: observerId, name: "Nana", joinCode: null, hasPlayer: true, online: false },
+    ]);
+  });
+
+  test("players don't see observers", async () => {
+    const { characterIds, view } = await observe();
+    const code = (await view()).characters.find((c) => c.id === characterIds[0])!.joinCode!;
+    const { player } = await join(code);
+    const play = (await player.get<PlayView>(`/api/play/${characterIds[0]}`)).body;
+    expect(play.observers).toBeUndefined();
+  });
+
+  test("an observer can't claim, release or play a character", async () => {
+    const { observerId, player, sessionId } = await observe();
+    const gem = (await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gem", value: 500 })).body;
+    const claimed = await player.post(`/api/play/${observerId}/claim`, { lootId: gem.id, quantity: 1 });
+    expect(claimed.status).toBe(404);
+    expect((await player.post(`/api/play/${observerId}/release`, { lootId: gem.id })).status).toBe(404);
+    expect((await player.get(`/api/play/${observerId}`)).status).toBe(404);
+  });
+
+  test("a code is held by one character or observer at most", async () => {
+    const { campaignId, characterIds, view } = await seed();
+    const o = (await gmA.post(`/api/campaigns/${campaignId}/observers`, { name: "Nana" })).body;
+    const code = (await view()).characters.find((c) => c.id === characterIds[0])!.joinCode!;
+    // The database itself refuses a code already held by another seat.
+    expect(() => ctx.db.insert(joinCode).values({ code, observerId: o.id }).run()).toThrow();
+    // A code is for exactly one seat.
+    expect(() =>
+      ctx.db
+        .insert(joinCode)
+        .values({ code: "ZZZZZZZZZZ", characterId: characterIds[1], observerId: o.id })
+        .run(),
+    ).toThrow();
+
+    // A drawn code that's taken is drawn again. All-zero bytes draw
+    // "AAAAAAAAAA", which the character is given first.
+    ctx.db.update(joinCode).set({ code: "AAAAAAAAAA" }).where(eq(joinCode.code, code)).run();
+    const original = crypto.getRandomValues;
+    const random = original.bind(crypto);
+    let draws = 0;
+    crypto.getRandomValues = ((a: Uint8Array) => (++draws === 1 ? a.fill(0) : random(a))) as typeof original;
+    try {
+      const fresh = issueJoinCode(ctx.db, { observerId: o.id });
+      expect(draws).toBe(2);
+      expect(fresh).not.toBe("AAAAAAAAAA");
+    } finally {
+      crypto.getRandomValues = original;
+    }
+  });
+
+  test("names are unique per campaign, ignoring case", async () => {
+    const { campaignId, observerId } = await observe();
+    const clash = await gmA.post(`/api/campaigns/${campaignId}/observers`, { name: "nana" });
+    expect(clash.status).toBe(409);
+    expect((await gmA.post(`/api/campaigns/${campaignId}/observers`, { name: "" })).status).toBe(400);
+    // A character may share an observer's name.
+    expect((await gmA.patch(`/api/observers/${observerId}`, { name: "Amiri" })).status).toBe(200);
+  });
+
+  test("a new code or deleting the observer signs its browser out", async () => {
+    const { observerId, player, view } = await observe();
+    const fresh = (await gmA.post(`/api/observers/${observerId}/code`)).body.joinCode;
+    expect((await view()).observers![0]!.hasPlayer).toBe(false);
+    const lost = await player.get(`/api/watch/${observerId}`);
+    expect(lost.status).toBe(403);
+    expect(lost.body.error).toContain("new join code");
+    expect((await player.get<Me>("/api/auth/me")).body.observers).toEqual([]);
+    const again = await player.post("/api/join", { code: fresh });
+    expect(again.body).toEqual({ observerId });
+
+    expect((await gmA.del(`/api/observers/${observerId}`)).status).toBe(200);
+    expect((await player.get(`/api/watch/${observerId}`)).status).toBe(404);
+    expect((await view()).observers).toEqual([]);
+  });
+
+  test("a browser can stop observing", async () => {
+    const { observerId, player, view } = await observe();
+    expect((await player.del(`/api/watch/${observerId}`)).status).toBe(200);
+    expect((await player.get(`/api/watch/${observerId}`)).status).toBe(403);
+    expect((await view()).observers![0]!.hasPlayer).toBe(false);
+  });
+
+  test("only the campaign's GM manages its observers", async () => {
+    const { campaignId, observerId } = await observe();
+    const gmB = new Client(ctx.app);
+    await gmB.login("bob@example.com");
+    expect((await gmB.post(`/api/campaigns/${campaignId}/observers`, { name: "Spy" })).status).toBe(404);
+    expect((await gmB.patch(`/api/observers/${observerId}`, { name: "Spy" })).status).toBe(404);
+    expect((await gmB.post(`/api/observers/${observerId}/code`)).status).toBe(404);
+    expect((await gmB.del(`/api/observers/${observerId}`)).status).toBe(404);
+    expect((await new Client(ctx.app).get(`/api/watch/${observerId}`)).status).toBe(401);
   });
 });
 
@@ -1390,6 +1523,22 @@ describe("live updates", () => {
     gmStream.close();
   });
 
+  test("observers show as online, and a new code ends their streams", async () => {
+    const { campaignId, view } = await seed();
+    const o = (await gmA.post(`/api/campaigns/${campaignId}/observers`, { name: "Nana" })).body;
+    const { player } = await join((await view()).observers![0]!.joinCode!);
+    const gmStream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    const stream = await openStream(player, `/api/watch/${o.id}/events`);
+    expect(await gmStream.next()).toBeNull();
+    expect((await view()).observers![0]!.online).toBe(true);
+
+    await gmA.post(`/api/observers/${o.id}/code`);
+    expect(await stream.rest()).toContain("event: revoked");
+    expect((await view()).observers![0]!.online).toBe(false);
+    expect((await player.raw("GET", `/api/watch/${o.id}/events`)).status).toBe(403);
+    gmStream.close();
+  });
+
   test("a rejected change announces nothing", async () => {
     const { campaignId, sessionId } = await seed();
     const seen = watch(campaignId);
@@ -1432,6 +1581,13 @@ describe("live updates", () => {
     await expectAnnounced(player.del(`/api/play/${amiri}`));
     const merisiel = (await gmA.post(`/api/campaigns/${campaignId}/characters`, { name: "Merisiel", shares: 1 })).body;
     await expectAnnounced(gmA.del(`/api/characters/${merisiel.id}`));
+    const nana = (await expectAnnounced(gmA.post(`/api/campaigns/${campaignId}/observers`, { name: "Nana" }))).body;
+    await expectAnnounced(gmA.patch(`/api/observers/${nana.id}`, { name: "Gran" }));
+    await expectAnnounced(gmA.post(`/api/observers/${nana.id}/code`));
+    const nanaCode = (await view()).observers!.find((o) => o.id === nana.id)!.joinCode!;
+    await expectAnnounced(player.post("/api/join", { code: nanaCode }));
+    await expectAnnounced(player.del(`/api/watch/${nana.id}`));
+    await expectAnnounced(gmA.del(`/api/observers/${nana.id}`));
     await expectAnnounced(gmA.del(`/api/campaigns/${campaignId}/image`));
     await expectAnnounced(gmA.del(`/api/campaigns/${campaignId}`));
   });

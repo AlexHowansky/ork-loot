@@ -18,9 +18,10 @@ export function JoinForm() {
     setBusy(true);
     setError(null);
     try {
-      const { characterId } = await api.post<{ characterId: string }>("/api/join", { code });
+      // A code is for either a character or an observer.
+      const joined = await api.post<{ characterId: string } | { observerId: string }>("/api/join", { code });
       await qc.invalidateQueries({ queryKey: keys.me });
-      navigate(`/play/${characterId}`);
+      navigate("characterId" in joined ? `/play/${joined.characterId}` : `/watch/${joined.observerId}`);
     } catch (err) {
       setError(err);
     } finally {
@@ -58,7 +59,7 @@ export function JoinPage() {
       <div className="card-body">
         <h1 className="card-title">Join a campaign</h1>
         <p className="text-sm text-base-content/70">
-          Your GM will give you a code for your character.
+          Your GM will give you a code for your character, or one to observe the campaign.
         </p>
         <JoinForm />
       </div>

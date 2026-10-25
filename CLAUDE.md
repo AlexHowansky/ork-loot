@@ -22,12 +22,13 @@ The product specification (terms and features) is in @SPEC.md.
   each browser refetches its own view. A handler may also pass a
   `LiveNotice` (`ctx.changed(campaignId, notice)`) naming only what every
   view already shows; other tabs show it as a toast. The bus also counts
-  each player's open streams per character, which is what makes a
-  character "Online"; changes to that reach only GM streams. Ending all of
+  each player's open streams per seat (a character or an observer, both
+  taken with a join code), which is what makes it "Online"; changes to
+  that reach only GM streams. Ending all of
   a GM's logins (a password reset) also calls `events.signOut(gmId)`,
   which sends their streams "signedout" and closes them; a new join code
-  calls `events.revoke(characterId)`, which does the same to that
-  character's player streams with "revoked". The bus is
+  (or deleting an observer) calls `events.revoke(seatId)`, which does the
+  same to that seat's player streams with "revoked". The bus is
   in memory, so the server runs as a single process; more than one would
   need a shared bus.
 
@@ -51,9 +52,11 @@ The product specification (terms and features) is in @SPEC.md.
 
 * Money is stored as integers in the campaign's minor unit, never as floats.
 
-* GMs, campaigns and characters have random UUID ids, since those ids can
-  appear in URLs and shouldn't be guessable by counting. Other tables keep
-  integer ids; they're only reached through an owned campaign.
+* GMs, campaigns, characters and observers have random UUID ids, since
+  those ids can appear in URLs and shouldn't be guessable by counting.
+  Other tables keep integer ids; they're only reached through an owned
+  campaign. The exception is `join_code`, keyed by the code itself, so the
+  database keeps codes unique across characters and observers alike.
 
 * Database tables should be named according to the singular form of a word, so
   prefer `user` over `users`.

@@ -117,6 +117,10 @@ export const characterSchema = z.object({
     .default(1),
 });
 
+export const observerSchema = z.object({
+  name: name("Name"),
+});
+
 export const sessionSchema = z.object({
   date: isoDate,
   title: optionalText(100),
@@ -183,6 +187,7 @@ export const pettyCashEntrySchema = z.object({
 
 export type CampaignInput = z.infer<typeof campaignSchema>;
 export type CharacterInput = z.infer<typeof characterSchema>;
+export type ObserverInput = z.infer<typeof observerSchema>;
 export type SessionInput = z.infer<typeof sessionSchema>;
 export type LootInput = z.infer<typeof lootSchema>;
 export type PettyCashEntryInput = z.infer<typeof pettyCashEntrySchema>;

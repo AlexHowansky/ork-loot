@@ -14,26 +14,30 @@ interface Subscriber {
   gm: boolean;
   /** The GM whose login opened it, so it can be ended with their logins. */
   gmId?: string;
-  /** The character a player stream plays, so it can end if they lose it. */
-  characterId?: string;
+  /** The seat a player stream is on, so it can end if they lose it. */
+  seatId?: string;
   /** Ends the stream, saying why, when its GM or player is signed out. */
   end?: () => void;
 }
 
-/** A player's open stream, which marks their character online. */
+/**
+ * A player's open stream, which marks their seat online. A seat is a
+ * character or an observer: either is taken with a join code.
+ */
 export interface Presence {
-  characterId: string;
+  seatId: string;
   playerId: number;
 }
 
 /**
  * Tells open browsers that a campaign changed. It lives in memory, so it
  * only reaches streams held by this process. It also counts each player's
- * open streams per character, which is what makes a character online.
+ * open streams per seat, which is what makes a character or observer
+ * online.
  */
 export function createEventBus() {
   const listeners = new Map<string, Set<Subscriber>>();
-  /** Character id → player id → open streams. */
+  /** Seat id → player id → open streams. */
   const present = new Map<string, Map<number, number>>();
 
   function publish(
@@ -60,7 +64,7 @@ export function createEventBus() {
     subscribe(
       campaignId: string,
       fn: Listener,
-      opts: { gm?: boolean; gmId?: string; characterId?: string; end?: () => void } = {},
+      opts: { gm?: boolean; gmId?: string; seatId?: string; end?: () => void } = {},
     ): () => void {
       let set = listeners.get(campaignId);
       if (!set) listeners.set(campaignId, (set = new Set()));
@@ -68,7 +72,7 @@ export function createEventBus() {
         fn,
         gm: opts.gm ?? false,
         gmId: opts.gmId,
-        characterId: opts.characterId,
+        seatId: opts.seatId,
         end: opts.end,
       };
       set.add(sub);
@@ -86,23 +90,23 @@ export function createEventBus() {
       return endWhere((s) => s.gmId === gmId);
     },
     /**
-     * Ends every player stream on a character, for when its player loses
-     * it to a new join code.
+     * Ends every player stream on a seat, for when its player loses it to
+     * a new join code.
      */
-    revoke(characterId: string): number {
-      return endWhere((s) => s.characterId === characterId);
+    revoke(seatId: string): number {
+      return endWhere((s) => s.seatId === seatId);
     },
     count(campaignId: string): number {
       return listeners.get(campaignId)?.size ?? 0;
     },
     /**
-     * Marks a player as viewing their character until the returned
+     * Marks a player as viewing their seat until the returned
      * function is called. Only the GM sees who is online, so only GM
      * streams hear when that changes.
      */
-    arrive(campaignId: string, { characterId, playerId }: Presence): () => void {
-      let players = present.get(characterId);
-      if (!players) present.set(characterId, (players = new Map()));
+    arrive(campaignId: string, { seatId, playerId }: Presence): () => void {
+      let players = present.get(seatId);
+      if (!players) present.set(seatId, (players = new Map()));
       const before = players.get(playerId) ?? 0;
       players.set(playerId, before + 1);
       if (before === 0) publish(campaignId, null, [], { gmOnly: true });
@@ -116,17 +120,17 @@ export function createEventBus() {
           return;
         }
         players.delete(playerId);
-        if (players.size === 0) present.delete(characterId);
+        if (players.size === 0) present.delete(seatId);
         publish(campaignId, null, [], { gmOnly: true });
       };
     },
     /**
-     * Whether this player has the character open. Asking about the
-     * character's current player ignores a stream left open by one who
-     * has since been signed out.
+     * Whether this player has the seat open. Asking about the seat's
+     * current player ignores a stream left open by one who has since been
+     * signed out.
      */
-    isOnline(characterId: string, playerId: number | null): boolean {
-      return playerId !== null && (present.get(characterId)?.get(playerId) ?? 0) > 0;
+    isOnline(seatId: string, playerId: number | null): boolean {
+      return playerId !== null && (present.get(seatId)?.get(playerId) ?? 0) > 0;
     },
   };
 }
@@ -142,7 +146,7 @@ const PING_MS = 25_000;
  * so nothing reaches a player that their normal view wouldn't show. The
  * only extra is a short notice of claims and releases, for a toast. A
  * GM's stream ends with "signedout" when their logins are all ended, and
- * a player's with "revoked" when their character gets a new join code.
+ * a player's with "revoked" when their seat gets a new join code.
  */
 export function sseResponse(
   ctx: Ctx,
@@ -169,7 +173,7 @@ export function sseResponse(
         {
           ...(opts.gm
             ? { gm: true, gmId: opts.gmId }
-            : { characterId: opts.presence.characterId }),
+            : { seatId: opts.presence.seatId }),
           end: () => {
             // Tells the page why, before the browser tries to reconnect.
             send(`event: ${opts.gm ? "signedout" : "revoked"}\ndata: {}\n\n`);

@@ -5,6 +5,8 @@ import type { LootStatus } from "./status.ts";
 export interface Me {
   gm: { id: string; email: string } | null;
   characters: PlayerCharacter[];
+  /** Campaigns this browser follows without playing in them. */
+  observers: PlayerObserver[];
 }
 
 export interface PlayerCharacter {
@@ -14,6 +16,9 @@ export interface PlayerCharacter {
   campaignName: string;
   campaignImage: string | null;
 }
+
+/** An observer this browser holds; `name` is the observer's own. */
+export type PlayerObserver = PlayerCharacter;
 
 export interface CampaignInfo {
   id: string;
@@ -70,6 +75,21 @@ export interface CharacterView {
   hasPlayer?: boolean;
   /** GM only: whether that player has the character open right now. */
   online?: boolean;
+}
+
+/**
+ * GM only: someone who follows the campaign without playing in it. They
+ * see what players see, but have no shares and can't claim loot.
+ */
+export interface ObserverView {
+  id: string;
+  name: string;
+  /** The unused join code, if any. */
+  joinCode: string | null;
+  /** Whether a player has taken this observer. */
+  hasPlayer: boolean;
+  /** Whether that player has the campaign open right now. */
+  online: boolean;
 }
 
 export interface SessionView {
@@ -162,10 +182,17 @@ export interface CampaignView {
   splits: SplitView[];
   /** The petty cash ledger, newest first. */
   pettyCash: PettyCashEntryView[];
+  /** GM only: the campaign's observers. */
+  observers?: ObserverView[];
 }
 
 export interface PlayView extends CampaignView {
   me: { id: string; name: string };
+}
+
+/** What an observer sees: the player's view, as no character. */
+export interface WatchView extends CampaignView {
+  observer: { id: string; name: string };
 }
 
 /**

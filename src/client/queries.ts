@@ -5,6 +5,7 @@ import type {
   CampaignView,
   Me,
   PlayView,
+  WatchView,
   ReferenceMatch,
 } from "../shared/types.ts";
 
@@ -13,6 +14,7 @@ export const keys = {
   campaigns: ["campaigns"] as const,
   campaign: (id: string) => ["campaign", id] as const,
   play: (id: string) => ["play", id] as const,
+  watch: (id: string) => ["watch", id] as const,
   reference: (id: string, q: string) => ["reference", id, q] as const,
 };
 
@@ -31,6 +33,12 @@ export const usePlay = (id: string) =>
   useQuery({
     queryKey: keys.play(id),
     queryFn: () => api.get<PlayView>(`/api/play/${id}`),
+  });
+
+export const useWatch = (id: string) =>
+  useQuery({
+    queryKey: keys.watch(id),
+    queryFn: () => api.get<WatchView>(`/api/watch/${id}`),
   });
 
 /** Items on the campaign's reference site matching `q`. */

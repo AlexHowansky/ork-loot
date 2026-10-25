@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../api.ts";
 import type {
   CharacterView,
+  ObserverView,
   LootView,
   SessionView,
   CampaignInfo,
@@ -87,6 +88,48 @@ export function CharacterForm({
             value={shares}
             onChange={(e) => setShares(e.target.value)}
           />
+        </Field>
+      </div>
+    </Modal>
+  );
+}
+
+export function ObserverForm({
+  campaignId,
+  observer,
+  onClose,
+  onSaved,
+}: {
+  campaignId: string;
+  observer?: ObserverView;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState(observer?.name ?? "");
+  const s = useSubmit();
+  const submit = () =>
+    s.run(async () => {
+      if (observer) await api.patch(`/api/observers/${observer.id}`, { name });
+      else await api.post(`/api/campaigns/${campaignId}/observers`, { name });
+      onSaved();
+      onClose();
+    });
+  return (
+    <Modal
+      title={observer ? "Edit observer" : "Add observer"}
+      onClose={onClose}
+      onSubmit={submit}
+      actions={
+        <>
+          <CancelButton onClick={onClose} />
+          <SubmitButton busy={s.busy}>{observer ? "Save observer" : "Add observer"}</SubmitButton>
+        </>
+      }
+    >
+      <div className="w-72 max-w-full">
+        <FormError message={s.hasFieldErrors ? null : s.message} />
+        <Field label="Name" error={s.fields.name} hint="Who is watching, so you can tell your observers apart. Players don't see observers.">
+          <input className={withError("input w-full", s.fields.name)} data-autofocus value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
       </div>
     </Modal>

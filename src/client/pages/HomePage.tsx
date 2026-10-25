@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { useMe } from "../queries.ts";
 import { LoadError, Loading } from "../components/Layout.tsx";
 import { CampaignCover } from "../components/CampaignCover.tsx";
-import { Icon, faDragon, faKey } from "../components/Icon.tsx";
+import { Icon, faDragon, faEye, faKey } from "../components/Icon.tsx";
 import { CampaignsPage } from "./CampaignsPage.tsx";
 import { JoinForm } from "./JoinPage.tsx";
 
@@ -18,7 +18,7 @@ export function HomePage() {
     </Link>
   );
 
-  if (me.characters.length === 0) {
+  if (me.characters.length === 0 && me.observers.length === 0) {
     return (
       <div className="card bg-base-100 shadow mx-auto mt-8 w-full max-w-md">
         <div className="card-body">
@@ -27,7 +27,7 @@ export function HomePage() {
           </h1>
           <p className="text-base-content/70">
             Track your party's loot. Enter the join code your GM gave you for
-            your character.
+            your character, or to observe a campaign.
           </p>
           <JoinForm />
         </div>
@@ -40,7 +40,9 @@ export function HomePage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">Welcome, adventurer</h1>
-          <p className="text-base-content/70">Choose a character to see their loot.</p>
+          <p className="text-base-content/70">
+            {me.observers.length === 0 ? "Choose a character to see their loot." : "Choose a character or a campaign you observe."}
+          </p>
         </div>
         {joinButton}
       </div>
@@ -51,6 +53,17 @@ export function HomePage() {
             <div className="card-body p-4">
               <h2 className="card-title">{c.name}</h2>
               <p className="text-sm text-base-content/70">{c.campaignName}</p>
+            </div>
+          </Link>
+        ))}
+        {me.observers.map((o) => (
+          <Link key={o.id} to={`/watch/${o.id}`} className="card bg-base-100 shadow transition hover:shadow-lg">
+            <CampaignCover image={o.campaignImage} />
+            <div className="card-body p-4">
+              <h2 className="card-title">{o.campaignName}</h2>
+              <p className="text-sm text-base-content/70">
+                <Icon icon={faEye} /> Observing as {o.name}
+              </p>
             </div>
           </Link>
         ))}

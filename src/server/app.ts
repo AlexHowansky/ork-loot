@@ -16,6 +16,7 @@ import { contentTypeFor, UPLOAD_NAME } from "./lib/upload.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { campaignRoutes } from "./routes/campaign.ts";
 import { characterRoutes } from "./routes/character.ts";
+import { observerRoutes } from "./routes/observer.ts";
 import { sessionRoutes } from "./routes/session.ts";
 import { lootRoutes } from "./routes/loot.ts";
 import { playerRoutes } from "./routes/player.ts";
@@ -59,6 +60,7 @@ export function createApp(config: AppConfig) {
   authRoutes(router);
   campaignRoutes(router);
   characterRoutes(router);
+  observerRoutes(router);
   sessionRoutes(router);
   lootRoutes(router);
   playerRoutes(router);

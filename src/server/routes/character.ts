@@ -1,7 +1,7 @@
 import { and, eq, ne, sql } from "drizzle-orm";
 import type { Db } from "../db/client.ts";
 import { campaign, character, loot, splitShare } from "../db/schema.ts";
-import { newJoinCode, requireGm } from "../lib/auth.ts";
+import { issueJoinCode, requireGm } from "../lib/auth.ts";
 import { conflict, notFound } from "../lib/errors.ts";
 import { readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
@@ -38,29 +38,20 @@ function assertNameFree(db: Db, campaignId: string, name: string, exceptId = "")
   }
 }
 
-/** A join code not used by any other character. */
-function freshCode(db: Db): string {
-  for (;;) {
-    const code = newJoinCode();
-    const taken = db
-      .select({ id: character.id })
-      .from(character)
-      .where(eq(character.joinCode, code))
-      .get();
-    if (!taken) return code;
-  }
-}
-
 export function characterRoutes(r: Router) {
   r.post("/api/campaigns/:id/characters", async (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, characterSchema);
     assertNameFree(ctx.db, c.id, input.name);
-    const row = ctx.db
-      .insert(character)
-      .values({ ...input, campaignId: c.id, joinCode: freshCode(ctx.db) })
-      .returning()
-      .get();
+    const row = ctx.db.transaction((tx) => {
+      const ch = tx
+        .insert(character)
+        .values({ ...input, campaignId: c.id })
+        .returning()
+        .get();
+      issueJoinCode(tx, { characterId: ch.id });
+      return ch;
+    });
     ctx.changed(c.id);
     logger.info("character created", { requestId: ctx.requestId, characterId: row.id });
     return { id: row.id };
@@ -93,13 +84,11 @@ export function characterRoutes(r: Router) {
 
   r.post("/api/characters/:id/code", (ctx) => {
     const ch = ownedCharacter(ctx.db, requireGm(ctx).id, uuidParam(ctx));
-    const joinCode = freshCode(ctx.db);
     // A new code also signs out whoever holds the character now.
-    ctx.db
-      .update(character)
-      .set({ joinCode, playerId: null })
-      .where(eq(character.id, ch.id))
-      .run();
+    const joinCode = ctx.db.transaction((tx) => {
+      tx.update(character).set({ playerId: null }).where(eq(character.id, ch.id)).run();
+      return issueJoinCode(tx, { characterId: ch.id });
+    });
     const streams = ctx.events.revoke(ch.id);
     ctx.changed(ch.campaignId);
     logger.info("join code regenerated", {

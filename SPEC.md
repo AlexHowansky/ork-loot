@@ -21,6 +21,13 @@ A virtual character in a game world. A character belongs to one campaign.
 
 An app user invited by a code. The code ties the user to one character.
 
+### Observer
+
+Someone who follows a campaign without playing in it. The GM creates an
+observer and gives its join code to whoever should watch. An observer sees
+what players see but is read-only: they have no share in splits and can't
+claim loot.
+
 ### Campaign
 
 A campaign belongs to one GM and has zero or more sessions. Campaigns have
@@ -129,10 +136,25 @@ they have claimed from the pool.
   player has open goes back to the start, saying the GM gave the character
   a new join code; one that missed being told says so when next loaded.
 
+* GMs can add observers to a campaign. Each has a name (required, unique
+  among the campaign's observers regardless of case) and a join code that
+  works just like a character's: it's used up once redeemed, a new one
+  signs out the current holder at once, and a page they have open goes
+  back to the start, saying so. The GM can rename and delete observers;
+  deleting one signs out its holder the same way.
+
+* An observer sees the whole campaign as a player does (unidentified items
+  stay hidden, join codes are GM-only), updated live, but changes nothing:
+  no claims, releases or anything else. They have no shares, take no part
+  in splits and don't count towards the pool's shares. The header says
+  "Observing as" and the observer's name. Only the GM sees the list of
+  observers.
+
 * The GM's characters table shows a "Joined" pill for each character a
   player has taken, and beside it an "Online" pill while that player has
   the character's campaign page open in a browser. It appears and goes
-  within moments, without reloading. Players don't see who is online.
+  within moments, without reloading. Players don't see who is online. The
+  observers table shows the same pills for each observer.
 
 * A character who has taken part in a loot split can't be deleted, so split
   history stays intact. Deleting any other character returns their claims to
@@ -143,6 +165,9 @@ they have claimed from the pool.
   a picker to switch between them, and can choose to forget a character. The
   picker shows a card per character, with its campaign's image. A browser
   holding no characters yet shows the join code box on its first screen.
+  The same browser can hold observers too, by redeeming their codes: the
+  picker shows a card per observed campaign, and an observer can be
+  forgotten in the same way.
 
 * Players see the whole campaign: every loot item, every character's shares
   and projected payout, and the split history. Join codes are GM-only.
@@ -161,7 +186,8 @@ they have claimed from the pool.
 
 * The campaign page, for the GM and players alike, shows its contents in tabs
   in this order: "Loot", "Petty cash", "Sessions", "Characters" and
-  "Splits". Loot is shown first.
+  "Splits". Loot is shown first. The GM also sees an "Observers" tab, after
+  "Characters", listing the campaign's observers with their join codes.
 
 * The "Petty cash" tab is the petty cash ledger, newest first, showing each
   entry's date, description, amount (negative when paid out) and the balance

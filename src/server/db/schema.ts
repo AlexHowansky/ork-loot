@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   integer,
   sqliteTable,
@@ -104,7 +106,6 @@ export const character = sqliteTable(
     shares: integer("shares").notNull().default(1),
     /** What this character still owes from earlier splits, in minor units. */
     debt: integer("debt").notNull().default(0),
-    joinCode: text("join_code").unique(),
     playerId: integer("player_id").references(() => player.id, {
       onDelete: "set null",
     }),
@@ -113,6 +114,55 @@ export const character = sqliteTable(
   (t) => [
     uniqueIndex("character_campaign_name_idx").on(t.campaignId, t.name),
     index("character_player_idx").on(t.playerId),
+  ],
+);
+
+/**
+ * Someone who follows a campaign without playing in it. Like a character,
+ * it is taken by redeeming a join code, but it has no shares and can't
+ * claim loot.
+ */
+export const observer = sqliteTable(
+  "observer",
+  {
+    id: uuid(),
+    campaignId: text("campaign_id")
+      .notNull()
+      .references(() => campaign.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    playerId: integer("player_id").references(() => player.id, {
+      onDelete: "set null",
+    }),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("observer_campaign_name_idx").on(t.campaignId, t.name),
+    index("observer_player_idx").on(t.playerId),
+  ],
+);
+
+/**
+ * An unused join code, for exactly one character or observer (a seat).
+ * Keeping every code in one table lets its primary key keep codes unique
+ * across both. Redeeming a code deletes it; a seat has at most one.
+ */
+export const joinCode = sqliteTable(
+  "join_code",
+  {
+    code: text("code").primaryKey(),
+    characterId: text("character_id")
+      .unique()
+      .references(() => character.id, { onDelete: "cascade" }),
+    observerId: text("observer_id")
+      .unique()
+      .references(() => observer.id, { onDelete: "cascade" }),
+    createdAt: createdAt(),
+  },
+  () => [
+    check(
+      "join_code_one_seat",
+      sql`(character_id IS NULL) <> (observer_id IS NULL)`,
+    ),
   ],
 );
 
@@ -234,6 +284,7 @@ export const loot = sqliteTable(
 
 export type Campaign = typeof campaign.$inferSelect;
 export type Character = typeof character.$inferSelect;
+export type Observer = typeof observer.$inferSelect;
 export type Session = typeof session.$inferSelect;
 export type Loot = typeof loot.$inferSelect;
 export type Split = typeof split.$inferSelect;

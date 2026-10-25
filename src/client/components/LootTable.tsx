@@ -119,7 +119,10 @@ export function LootTable({
   const nameById = new Map(view.characters.map((c) => [c.id, c.name]));
   // Characters without shares can't claim loot.
   const claimants = view.characters.filter((c) => c.shares > 0);
-  const canClaim = mode.kind === "gm" ? claimants.length > 0 : claimants.some((c) => c.id === mode.characterId);
+  const canClaim =
+    mode.kind === "gm"
+      ? claimants.length > 0
+      : mode.kind === "player" && claimants.some((c) => c.id === mode.characterId);
   const needle = fold(search.trim());
   const filtered = statusFilter !== "pool" || sessionFilter !== "all" || claimFilter !== "all" || search !== "";
   // A character deleted while chosen leaves nothing to match, so show everyone's.
@@ -193,7 +196,8 @@ export function LootTable({
   }
 
   function claim(item: LootView) {
-    if (mode.kind !== "player" || item.quantity > 1) {
+    if (mode.kind === "observer") return;
+    if (mode.kind === "gm" || item.quantity > 1) {
       setClaiming(item);
       return;
     }
@@ -205,6 +209,7 @@ export function LootTable({
   }
 
   function release(item: LootView) {
+    if (mode.kind === "observer") return;
     act(
       item,
       () =>

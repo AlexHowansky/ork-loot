@@ -1,6 +1,14 @@
 import { and, eq } from "drizzle-orm";
-import type { Db } from "../db/client.ts";
-import { character, gm, login, passwordReset, player } from "../db/schema.ts";
+import type { Db, DbOrTx } from "../db/client.ts";
+import {
+  character,
+  gm,
+  joinCode,
+  login,
+  observer,
+  passwordReset,
+  player,
+} from "../db/schema.ts";
 import { AppError, notFound, unauthorized } from "./errors.ts";
 import { serializeCookie, type Ctx } from "./http.ts";
 import { logger } from "./logger.ts";
@@ -207,6 +215,29 @@ export function requireOwnedCharacter(ctx: Ctx, characterId: string) {
   return row;
 }
 
+/** The observer with this id, if this browser's player holds it. */
+export function requireOwnedObserver(ctx: Ctx, observerId: string) {
+  const current = currentPlayer(ctx);
+  if (!current) {
+    throw new AppError(401, "Enter a join code to follow a campaign.");
+  }
+  const row = ctx.db
+    .select()
+    .from(observer)
+    .where(eq(observer.id, observerId))
+    .get();
+  if (!row) throw notFound("That observer");
+  // Most likely the GM gave it a new join code, which signs its player out.
+  if (row.playerId !== current.id) {
+    throw new AppError(
+      403,
+      "This browser isn't observing that campaign. If your GM gave you a " +
+        "new join code, ask them for it.",
+    );
+  }
+  return row;
+}
+
 export const JOIN_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const JOIN_CODE_LENGTH = 10;
 
@@ -215,4 +246,32 @@ export function newJoinCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(JOIN_CODE_LENGTH));
   // 256 is a multiple of the 32-letter alphabet, so this has no bias.
   return Array.from(bytes, (b) => JOIN_ALPHABET[b % JOIN_ALPHABET.length]).join("");
+}
+
+/** A character or observer: what a join code lets a player take. */
+export type Seat = { characterId: string } | { observerId: string };
+
+/**
+ * Gives a seat a new join code, replacing any it had. Codes are the
+ * `join_code` table's primary key, so the database refuses one already
+ * held by any character or observer, and another is drawn.
+ */
+export function issueJoinCode(db: DbOrTx, seat: Seat): string {
+  db.delete(joinCode)
+    .where(
+      "characterId" in seat
+        ? eq(joinCode.characterId, seat.characterId)
+        : eq(joinCode.observerId, seat.observerId),
+    )
+    .run();
+  for (;;) {
+    const code = newJoinCode();
+    const row = db
+      .insert(joinCode)
+      .values({ code, ...seat })
+      .onConflictDoNothing({ target: joinCode.code })
+      .returning()
+      .get();
+    if (row) return code;
+  }
 }

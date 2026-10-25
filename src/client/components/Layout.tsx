@@ -11,6 +11,7 @@ import {
   faArrowRightFromBracket,
   faCircleHalfStroke,
   faDragon,
+  faEye,
   faKey,
   faMoon,
   faSun,
@@ -90,13 +91,14 @@ export function Layout() {
         </div>
         <div className="navbar-end gap-1">
           {playing && <DebtWarning characterId={playing} />}
-          {me && me.characters.length > 0 && (
+          {me && me.characters.length + me.observers.length > 0 && (
             <Menu
               buttonClass="btn btn-ghost btn-sm"
               menuClass="w-64"
               label={
                 <>
-                  <Icon icon={faUser} /> <span className="hidden sm:inline">Characters</span>
+                  <Icon icon={faUser} />{" "}
+                  <span className="hidden sm:inline">{me.characters.length > 0 ? "Characters" : "Campaigns"}</span>
                 </>
               }
             >
@@ -105,6 +107,16 @@ export function Layout() {
                   <Link to={`/play/${c.id}`}>
                     <span className="font-medium">{c.name}</span>
                     <span className="text-base-content/60 text-xs">{c.campaignName}</span>
+                  </Link>
+                </li>
+              ))}
+              {me.observers.map((o) => (
+                <li key={o.id}>
+                  <Link to={`/watch/${o.id}`}>
+                    <span className="font-medium">
+                      <Icon icon={faEye} /> {o.campaignName}
+                    </span>
+                    <span className="text-base-content/60 text-xs">Observing</span>
                   </Link>
                 </li>
               ))}

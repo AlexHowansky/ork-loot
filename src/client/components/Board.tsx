@@ -3,15 +3,20 @@ import type { CampaignView } from "../../shared/types.ts";
 import { Money } from "./Money.tsx";
 import { DEFAULT_SORT, LootTable, type ClaimFilter, type LootSort, type StatusFilter } from "./LootTable.tsx";
 import { CharacterTable } from "./CharacterTable.tsx";
+import { ObserverTable } from "./ObserverTable.tsx";
 import { SessionTable } from "./SessionTable.tsx";
 import { SplitHistory } from "./SplitHistory.tsx";
 import { PettyCashLedger } from "./PettyCashLedger.tsx";
 import { formatMoney } from "../../shared/money.ts";
 import { Icon, faCalendarDays } from "./Icon.tsx";
 
-export type Mode = { kind: "gm" } | { kind: "player"; characterId: string };
+export type Mode =
+  | { kind: "gm" }
+  | { kind: "player"; characterId: string }
+  /** Sees what players see, as no character, and can change nothing. */
+  | { kind: "observer"; name: string };
 
-type Tab = "loot" | "sessions" | "splits" | "characters" | "pettyCash";
+type Tab = "loot" | "sessions" | "splits" | "characters" | "observers" | "pettyCash";
 
 /** The campaign's header, totals and tabs, for both GMs and players. */
 export function CampaignBoard({
@@ -49,6 +54,8 @@ export function CampaignBoard({
     ["pettyCash", "Petty cash", view.pettyCash.length],
     ["sessions", "Sessions", view.sessions.length],
     ["characters", "Characters", view.characters.length],
+    // Only the GM is sent the observers.
+    ...(view.observers ? [["observers", "Observers", view.observers.length] as [Tab, string, number]] : []),
     ["splits", "Splits", view.splits.length],
   ];
 
@@ -63,6 +70,7 @@ export function CampaignBoard({
         <div className="relative flex flex-col gap-3 rounded-box bg-linear-to-r from-neutral/90 via-neutral/70 to-neutral/30 p-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             {me && <p className="text-sm opacity-80">Playing {me.name}</p>}
+            {mode.kind === "observer" && <p className="text-sm opacity-80">Observing as {mode.name}</p>}
             <h1 className="text-2xl font-bold sm:text-3xl">{campaign.name}</h1>
             <p className="text-sm opacity-80">
               <Icon icon={faCalendarDays} /> Started {campaign.startDate}
@@ -169,6 +177,7 @@ export function CampaignBoard({
               }}
             />
           )}
+          {tab === "observers" && <ObserverTable view={view} />}
           {tab === "sessions" && (
             <SessionTable
               view={view}

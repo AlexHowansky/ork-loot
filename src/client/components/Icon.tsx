@@ -9,6 +9,7 @@ export {
   faCopy,
   faDice,
   faDragon,
+  faEye,
   faHand,
   faHandshake,
   faImage,

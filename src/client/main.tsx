@@ -14,6 +14,7 @@ import { ResetPasswordPage } from "./pages/ResetPasswordPage.tsx";
 import { JoinPage } from "./pages/JoinPage.tsx";
 import { CampaignPage } from "./pages/CampaignPage.tsx";
 import { PlayPage } from "./pages/PlayPage.tsx";
+import { WatchPage } from "./pages/WatchPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 
 // Styles come from app.css; injecting a <style> tag would need a looser CSP.
@@ -44,6 +45,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="join" element={<JoinPage />} />
                 <Route path="campaigns/:id" element={<CampaignPage />} />
                 <Route path="play/:id" element={<PlayPage />} />
+                <Route path="watch/:id" element={<WatchPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
             </Routes>

@@ -1,5 +1,5 @@
-import { and, asc, eq } from "drizzle-orm";
-import { campaign, character, gm } from "../db/schema.ts";
+import { asc, eq } from "drizzle-orm";
+import { campaign, character, gm, joinCode, observer } from "../db/schema.ts";
 import {
   currentGm,
   currentPlayer,
@@ -23,24 +23,41 @@ import {
 } from "../../shared/schemas.ts";
 import type { Me } from "../../shared/types.ts";
 
-function me(ctx: Ctx): Me {
+/** The characters and observers this browser holds. */
+function seats(ctx: Ctx): Omit<Me, "gm"> {
   const player = currentPlayer(ctx);
-  const characters = player
-    ? ctx.db
-        .select({
-          id: character.id,
-          name: character.name,
-          campaignId: campaign.id,
-          campaignName: campaign.name,
-          campaignImage: campaign.backgroundImage,
-        })
-        .from(character)
-        .innerJoin(campaign, eq(campaign.id, character.campaignId))
-        .where(eq(character.playerId, player.id))
-        .orderBy(asc(campaign.name), asc(character.name))
-        .all()
-    : [];
-  return { gm: currentGm(ctx), characters };
+  if (!player) return { characters: [], observers: [] };
+  const characters = ctx.db
+    .select({
+      id: character.id,
+      name: character.name,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      campaignImage: campaign.backgroundImage,
+    })
+    .from(character)
+    .innerJoin(campaign, eq(campaign.id, character.campaignId))
+    .where(eq(character.playerId, player.id))
+    .orderBy(asc(campaign.name), asc(character.name))
+    .all();
+  const observers = ctx.db
+    .select({
+      id: observer.id,
+      name: observer.name,
+      campaignId: campaign.id,
+      campaignName: campaign.name,
+      campaignImage: campaign.backgroundImage,
+    })
+    .from(observer)
+    .innerJoin(campaign, eq(campaign.id, observer.campaignId))
+    .where(eq(observer.playerId, player.id))
+    .orderBy(asc(campaign.name), asc(observer.name))
+    .all();
+  return { characters, observers };
+}
+
+function me(ctx: Ctx): Me {
+  return { gm: currentGm(ctx), ...seats(ctx) };
 }
 
 /** Runs an email-keyed limit, logging (without the address) when it trips. */
@@ -77,7 +94,7 @@ export function authRoutes(r: Router) {
     }
     startLogin(ctx, gm.id);
     logger.info("login", { requestId: ctx.requestId, gmId: gm.id });
-    return { gm: { id: gm.id, email: gm.email }, characters: me(ctx).characters };
+    return { gm: { id: gm.id, email: gm.email }, ...seats(ctx) };
   });
 
   r.post("/api/auth/logout", (ctx) => {
@@ -137,18 +154,14 @@ export function authRoutes(r: Router) {
     const streams = ctx.events.signOut(gmId);
     logger.info("password reset", { requestId: ctx.requestId, gmId, streams });
     const row = ctx.db.select().from(gm).where(eq(gm.id, gmId)).get()!;
-    return { gm: { id: row.id, email: row.email }, characters: me(ctx).characters };
+    return { gm: { id: row.id, email: row.email }, ...seats(ctx) };
   });
 
   r.post("/api/join", async (ctx) => {
     joinLimiter.hit(ctx.ip);
     const { code } = await readJson(ctx, joinSchema);
-    const target = ctx.db
-      .select()
-      .from(character)
-      .where(eq(character.joinCode, code))
-      .get();
-    if (!target) {
+    const known = ctx.db.select().from(joinCode).where(eq(joinCode.code, code)).get();
+    if (!known) {
       logger.warn("join code rejected", { requestId: ctx.requestId, ip: ctx.ip });
       throw new AppError(
         404,
@@ -157,16 +170,40 @@ export function authRoutes(r: Router) {
       );
     }
     const player = ensurePlayer(ctx);
-    // Guard on the code so two simultaneous redemptions can't both succeed.
-    const claimed = ctx.db
-      .update(character)
-      .set({ playerId: player.id, joinCode: null })
-      .where(and(eq(character.id, target.id), eq(character.joinCode, code)))
-      .returning()
-      .get();
-    if (!claimed) {
+    const taken = ctx.db.transaction((tx) => {
+      // Deleting the code uses it up, so two redemptions can't both succeed.
+      const used = tx.delete(joinCode).where(eq(joinCode.code, code)).returning().get();
+      if (!used) return null;
+      if (used.observerId !== null) {
+        const o = tx
+          .update(observer)
+          .set({ playerId: player.id })
+          .where(eq(observer.id, used.observerId))
+          .returning()
+          .get()!;
+        return { observer: o };
+      }
+      const ch = tx
+        .update(character)
+        .set({ playerId: player.id })
+        .where(eq(character.id, used.characterId!))
+        .returning()
+        .get()!;
+      return { character: ch };
+    });
+    if (!taken) {
       throw new AppError(409, "That code was just used. Ask your GM for a new one.");
     }
+    if (taken.observer) {
+      ctx.changed(taken.observer.campaignId);
+      logger.info("observer joined", {
+        requestId: ctx.requestId,
+        observerId: taken.observer.id,
+        playerId: player.id,
+      });
+      return { observerId: taken.observer.id };
+    }
+    const claimed = taken.character;
     ctx.changed(claimed.campaignId);
     logger.info("character joined", {
       requestId: ctx.requestId,
