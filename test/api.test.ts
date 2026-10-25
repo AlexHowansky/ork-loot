@@ -366,8 +366,11 @@ describe("join codes", () => {
     expect((await join(code)).res.status).toBe(404);
 
     const fresh = (await gmA.post(`/api/characters/${characterIds[0]}/code`)).body.joinCode;
-    // The old browser loses the character as soon as the new code exists.
-    expect((await first.player.get(`/api/play/${characterIds[0]}`)).status).toBe(404);
+    // The old browser loses the character as soon as the new code exists,
+    // and is told why.
+    const lost = await first.player.get(`/api/play/${characterIds[0]}`);
+    expect(lost.status).toBe(403);
+    expect(lost.body.error).toContain("new join code");
     expect((await first.player.get("/api/auth/me")).body.characters).toHaveLength(0);
     const amiri = (await view()).characters.find((c) => c.name === "Amiri")!;
     expect(amiri.hasPlayer).toBe(false);
@@ -503,7 +506,7 @@ describe("claims", () => {
   test("players act only for their own characters", async () => {
     const { potion, amiri, ezren } = await withPotions();
     const res = await amiri.client.post(`/api/play/${ezren.id}/claim`, { lootId: potion.id, quantity: 1 });
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(403);
   });
 
   test("players can't use GM endpoints to set other statuses", async () => {
@@ -1352,14 +1355,24 @@ describe("live updates", () => {
     watching.close();
   });
 
-  test("a signed-out player's open stream doesn't count", async () => {
-    const { view } = await seed();
-    const first = (await view()).characters[0]!;
-    const { player } = await join(first.joinCode!);
-    const stream = await openStream(player, `/api/play/${first.id}/events`);
-    await gmA.post(`/api/characters/${first.id}/code`);
-    expect((await view()).characters[0]!.online).toBe(false);
-    stream.close();
+  test("a new join code ends the old player's streams, and only theirs", async () => {
+    const { campaignId, view } = await seed();
+    const [first, second] = (await view()).characters;
+    const { player } = await join(first!.joinCode!);
+    await player.post("/api/join", { code: second!.joinCode! });
+    const stream = await openStream(player, `/api/play/${first!.id}/events`);
+    const other = await openStream(player, `/api/play/${second!.id}/events`);
+    const gmStream = await openStream(gmA, `/api/campaigns/${campaignId}/events`);
+    expect(ctx.app.events.count(campaignId)).toBe(3);
+
+    await gmA.post(`/api/characters/${first!.id}/code`);
+    expect(await stream.rest()).toContain("event: revoked");
+    expect(ctx.app.events.count(campaignId)).toBe(2);
+    expect((await view()).characters.find((c) => c.id === first!.id)!.online).toBe(false);
+    // Coming back on the old stream URL is refused.
+    expect((await player.raw("GET", `/api/play/${first!.id}/events`)).status).toBe(403);
+    other.close();
+    gmStream.close();
   });
 
   test("a rejected change announces nothing", async () => {

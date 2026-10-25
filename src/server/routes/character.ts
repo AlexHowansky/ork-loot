@@ -100,11 +100,13 @@ export function characterRoutes(r: Router) {
       .set({ joinCode, playerId: null })
       .where(eq(character.id, ch.id))
       .run();
+    const streams = ctx.events.revoke(ch.id);
     ctx.changed(ch.campaignId);
     logger.info("join code regenerated", {
       requestId: ctx.requestId,
       characterId: ch.id,
       signedOut: ch.playerId !== null,
+      streams,
     });
     return { joinCode };
   });

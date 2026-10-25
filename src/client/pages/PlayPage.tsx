@@ -8,6 +8,7 @@ import { LoadError, Loading } from "../components/Layout.tsx";
 import { useConfirm } from "../components/Confirm.tsx";
 import { useToast } from "../components/Toast.tsx";
 import { Icon, faArrowRightFromBracket } from "../components/Icon.tsx";
+import type { PlayView } from "../../shared/types.ts";
 
 export function PlayPage() {
   const id = useParams().id ?? "";
@@ -16,7 +17,17 @@ export function PlayPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  useLiveUpdates(`/api/play/${id}/events`, [keys.play(id)]);
+  useLiveUpdates(`/api/play/${id}/events`, [keys.play(id)], () => {
+    const name = qc.getQueryData<PlayView>(keys.play(id))?.me.name ?? "your character";
+    qc.removeQueries({ queryKey: keys.play(id) });
+    void qc.invalidateQueries({ queryKey: keys.me });
+    navigate("/");
+    toast(
+      `Your GM gave ${name} a new join code, so this browser can't play them any more. ` +
+        "Ask your GM for the code to come back.",
+      "info",
+    );
+  });
 
   if (isPending) return <Loading />;
   if (error) return <LoadError error={error} />;

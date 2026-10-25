@@ -193,9 +193,17 @@ export function requireOwnedCharacter(ctx: Ctx, characterId: string) {
   const row = ctx.db
     .select()
     .from(character)
-    .where(and(eq(character.id, characterId), eq(character.playerId, current.id)))
+    .where(eq(character.id, characterId))
     .get();
   if (!row) throw notFound("That character");
+  // Most likely the GM gave it a new join code, which signs its player out.
+  if (row.playerId !== current.id) {
+    throw new AppError(
+      403,
+      "This browser isn't playing that character. If your GM gave it a new " +
+        "join code, ask them for it.",
+    );
+  }
   return row;
 }
 

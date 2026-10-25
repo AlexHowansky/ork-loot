@@ -25,7 +25,9 @@ The product specification (terms and features) is in @SPEC.md.
   each player's open streams per character, which is what makes a
   character "Online"; changes to that reach only GM streams. Ending all of
   a GM's logins (a password reset) also calls `events.signOut(gmId)`,
-  which sends their streams "signedout" and closes them. The bus is
+  which sends their streams "signedout" and closes them; a new join code
+  calls `events.revoke(characterId)`, which does the same to that
+  character's player streams with "revoked". The bus is
   in memory, so the server runs as a single process; more than one would
   need a shared bus.
 

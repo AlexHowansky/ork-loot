@@ -125,7 +125,9 @@ they have claimed from the pool.
   get a default join code which can be given to players. Once used, the code is
   invalidated. If the player misplaces the code, the GM can create a new one.
   Creating a new code signs out the character's current player at once;
-  whoever redeems the new code takes the character over.
+  whoever redeems the new code takes the character over. A page the old
+  player has open goes back to the start, saying the GM gave the character
+  a new join code; one that missed being told says so when next loaded.
 
 * The GM's characters table shows a "Joined" pill for each character a
   player has taken, and beside it an "Online" pill while that player has

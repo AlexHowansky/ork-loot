@@ -14,7 +14,9 @@ interface Subscriber {
   gm: boolean;
   /** The GM whose login opened it, so it can be ended with their logins. */
   gmId?: string;
-  /** Ends the stream when its GM is signed out everywhere. */
+  /** The character a player stream plays, so it can end if they lose it. */
+  characterId?: string;
+  /** Ends the stream, saying why, when its GM or player is signed out. */
   end?: () => void;
 }
 
@@ -45,15 +47,30 @@ export function createEventBus() {
     }
   }
 
+  function endWhere(match: (s: Subscriber) => boolean): number {
+    const ending: (() => void)[] = [];
+    for (const set of listeners.values()) {
+      for (const s of set) if (match(s) && s.end) ending.push(s.end);
+    }
+    for (const end of ending) end();
+    return ending.length;
+  }
+
   return {
     subscribe(
       campaignId: string,
       fn: Listener,
-      opts: { gm?: boolean; gmId?: string; end?: () => void } = {},
+      opts: { gm?: boolean; gmId?: string; characterId?: string; end?: () => void } = {},
     ): () => void {
       let set = listeners.get(campaignId);
       if (!set) listeners.set(campaignId, (set = new Set()));
-      const sub: Subscriber = { fn, gm: opts.gm ?? false, gmId: opts.gmId, end: opts.end };
+      const sub: Subscriber = {
+        fn,
+        gm: opts.gm ?? false,
+        gmId: opts.gmId,
+        characterId: opts.characterId,
+        end: opts.end,
+      };
       set.add(sub);
       return () => {
         set.delete(sub);
@@ -66,12 +83,14 @@ export function createEventBus() {
      * been ended, so no page keeps listening on a login that is gone.
      */
     signOut(gmId: string): number {
-      const ending: (() => void)[] = [];
-      for (const set of listeners.values()) {
-        for (const s of set) if (s.gmId === gmId && s.end) ending.push(s.end);
-      }
-      for (const end of ending) end();
-      return ending.length;
+      return endWhere((s) => s.gmId === gmId);
+    },
+    /**
+     * Ends every player stream on a character, for when its player loses
+     * it to a new join code.
+     */
+    revoke(characterId: string): number {
+      return endWhere((s) => s.characterId === characterId);
     },
     count(campaignId: string): number {
       return listeners.get(campaignId)?.size ?? 0;
@@ -122,7 +141,8 @@ const PING_MS = 25_000;
  * does. It carries no campaign data: each browser refetches its own view,
  * so nothing reaches a player that their normal view wouldn't show. The
  * only extra is a short notice of claims and releases, for a toast. A
- * GM's stream ends with "signedout" when their logins are all ended.
+ * GM's stream ends with "signedout" when their logins are all ended, and
+ * a player's with "revoked" when their character gets a new join code.
  */
 export function sseResponse(
   ctx: Ctx,
@@ -146,17 +166,16 @@ export function sseResponse(
         campaignId,
         (origin, notices) =>
           send(`event: changed\ndata: ${JSON.stringify({ origin, notices })}\n\n`),
-        opts.gm
-          ? {
-              gm: true,
-              gmId: opts.gmId,
-              end: () => {
-                // Tells the page why, before the browser tries to reconnect.
-                send("event: signedout\ndata: {}\n\n");
-                cleanup();
-              },
-            }
-          : {},
+        {
+          ...(opts.gm
+            ? { gm: true, gmId: opts.gmId }
+            : { characterId: opts.presence.characterId }),
+          end: () => {
+            // Tells the page why, before the browser tries to reconnect.
+            send(`event: ${opts.gm ? "signedout" : "revoked"}\ndata: {}\n\n`);
+            cleanup();
+          },
+        },
       );
       const leave = opts.gm ? () => {} : ctx.events.arrive(campaignId, opts.presence);
       const ping = setInterval(() => send(": ping\n\n"), PING_MS);

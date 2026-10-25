@@ -26,14 +26,22 @@ export function noticeText(n: LiveNotice): string {
  * EventSource reconnects on its own; a reconnect refetches too, in case
  * something changed in between. When the GM is signed out everywhere, as
  * by a password reset, the stream says so before it ends: a browser that
- * signed back in carries on, and any other goes back to the start.
+ * signed back in carries on, and any other goes back to the start. A
+ * player's stream ends with "revoked" when the GM gives their character a
+ * new join code, and `onRevoked` says what to do then.
  */
-export function useLiveUpdates(url: string, queryKeys: QueryKey[]) {
+export function useLiveUpdates(
+  url: string,
+  queryKeys: QueryKey[],
+  onRevoked?: () => void,
+) {
   const qc = useQueryClient();
   const toast = useToast();
   const navigate = useNavigate();
   const keysRef = useRef(queryKeys);
   keysRef.current = queryKeys;
+  const revokedRef = useRef(onRevoked);
+  revokedRef.current = onRevoked;
 
   useEffect(() => {
     const source = new EventSource(url);
@@ -72,6 +80,10 @@ export function useLiveUpdates(url: string, queryKeys: QueryKey[]) {
         navigate("/");
         toast("You've been signed out because your password was changed.", "info");
       }
+    });
+    source.addEventListener("revoked", () => {
+      source.close();
+      revokedRef.current?.();
     });
     return () => source.close();
   }, [url, qc, toast, navigate]);
