@@ -203,6 +203,8 @@ export const loot = sqliteTable(
       .notNull()
       .references(() => session.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** Where the item is kept, e.g. "Bag of holding". */
+    location: text("location"),
     description: text("description"),
     link: text("link"),
     quantity: integer("quantity").notNull().default(1),

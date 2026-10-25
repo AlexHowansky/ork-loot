@@ -84,6 +84,8 @@ export interface LootView {
   id: number;
   sessionId: number;
   name: string;
+  /** Where the item is kept; players see it even while unidentified. */
+  location: string | null;
   description: string | null;
   link: string | null;
   quantity: number;

@@ -125,6 +125,7 @@ export const sessionSchema = z.object({
 
 const lootFields = z.object({
   name: name("Name", 200),
+  location: optionalText(100),
   description: optionalText(2000),
   link: optionalLink,
   quantity: z

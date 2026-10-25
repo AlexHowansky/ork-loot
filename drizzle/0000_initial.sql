@@ -52,6 +52,7 @@ CREATE TABLE `loot` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`session_id` integer NOT NULL,
 	`name` text NOT NULL,
+	`location` text,
 	`description` text,
 	`link` text,
 	`quantity` integer DEFAULT 1 NOT NULL,

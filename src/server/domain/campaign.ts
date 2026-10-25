@@ -57,6 +57,7 @@ export function lootView(row: Loot, forGm = true): LootView {
     id: row.id,
     sessionId: row.sessionId,
     name: row.name,
+    location: row.location,
     description: row.description,
     link: row.link,
     quantity: row.quantity,

@@ -46,7 +46,16 @@ const FILTER_LABEL: Record<StatusFilter, string> = {
 /** Whose items to show: anyone's, nobody's, or one character's (by id). */
 export type ClaimFilter = "all" | "none" | string;
 
-export type SortKey = "name" | "quantity" | "value" | "marketPct" | "subtotal" | "status" | "claim" | "session";
+export type SortKey =
+  | "name"
+  | "location"
+  | "quantity"
+  | "value"
+  | "marketPct"
+  | "subtotal"
+  | "status"
+  | "claim"
+  | "session";
 
 export interface LootSort {
   key: SortKey;
@@ -119,6 +128,7 @@ export function LootTable({
   // What each column sorts by; null is a blank or hidden cell, which sorts last either way.
   const sortValue: Record<SortKey, (l: LootView) => string | number | null> = {
     name: (l) => l.name,
+    location: (l) => l.location,
     quantity: (l) => l.quantity,
     value: (l) => (l.unidentified && !gm ? null : l.value),
     marketPct: (l) => l.marketPct,
@@ -377,6 +387,7 @@ export function LootTable({
             <thead>
               <tr>
                 {sortHeader("name", "Item", "w-full")}
+                {sortHeader("location", "Location", "hidden sm:table-cell")}
                 {sortHeader("quantity", "Qty", "text-right")}
                 {sortHeader("value", "Each", "hidden text-right sm:table-cell")}
                 {sortHeader("marketPct", "Market", "hidden text-right sm:table-cell")}
@@ -425,6 +436,9 @@ export function LootTable({
                       <div className="flex flex-wrap items-center gap-x-1 sm:hidden">
                         {statusPill(item, "right")}
                         {claimant && <span className="text-xs text-base-content/70">{claimant}</span>}
+                        {item.location && (
+                          <span className="text-xs text-base-content/70">· {item.location}</span>
+                        )}
                       </div>
                       {item.description && (
                         <div className="max-w-md text-xs whitespace-pre-line text-base-content/60">
@@ -432,6 +446,7 @@ export function LootTable({
                         </div>
                       )}
                     </td>
+                    <td className="hidden min-w-24 text-base-content/70 sm:table-cell">{item.location}</td>
                     <td className="text-right tabular-nums">{item.quantity}</td>
                     <td className="hidden text-right sm:table-cell">
                       {item.unidentified && !gm ? (

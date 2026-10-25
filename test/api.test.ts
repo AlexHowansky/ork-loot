@@ -432,14 +432,27 @@ describe("claims", () => {
     expect(claimed.characterId).toBe(amiri.id);
   });
 
-  test("a split stack keeps its link and merges back on release", async () => {
+  test("a split stack keeps its link and location and merges back on release", async () => {
     const { potion, amiri, view } = await withPotions();
-    await gmA.patch(`/api/loot/${potion.id}`, { link: "https://example.com/potion" });
+    await gmA.patch(`/api/loot/${potion.id}`, { link: "https://example.com/potion", location: "Wagon" });
     await amiri.client.post(`/api/play/${amiri.id}/claim`, { lootId: potion.id, quantity: 2 });
     const claimed = (await view()).loot.find((l) => l.status === "claimed")!;
-    expect(claimed.link).toBe("https://example.com/potion");
+    expect(claimed).toMatchObject({ link: "https://example.com/potion", location: "Wagon" });
     await amiri.client.post(`/api/play/${amiri.id}/release`, { lootId: claimed.id });
     expect((await view()).loot).toHaveLength(1);
+  });
+
+  test("a released claim kept somewhere else stays a row of its own", async () => {
+    const { potion, amiri, view } = await withPotions();
+    await amiri.client.post(`/api/play/${amiri.id}/claim`, { lootId: potion.id, quantity: 2 });
+    const claimed = (await view()).loot.find((l) => l.status === "claimed")!;
+    await gmA.patch(`/api/loot/${claimed.id}`, { location: "  Amiri's pack  " });
+    await amiri.client.post(`/api/play/${amiri.id}/release`, { lootId: claimed.id });
+    const loot = (await view()).loot;
+    expect(loot.map((l) => [l.quantity, l.location, l.status]).sort()).toEqual([
+      [2, "Amiri's pack", "available"],
+      [3, null, "available"],
+    ]);
   });
 
   test("the GM can claim part of a stack for a character and release it", async () => {
@@ -613,6 +626,7 @@ describe("loot split", () => {
         name: "Wand of Fireballs",
         description: "Shoots fire",
         link: "https://example.com/wand",
+        location: "Locked chest",
         quantity: 2,
         value: 9000,
         unidentified: true,
@@ -628,6 +642,7 @@ describe("loot split", () => {
     const play = (await player.get<PlayView>(`/api/play/${amiri}`)).body;
     expect(play.loot.find((l) => l.id === wands.id)).toMatchObject({
       name: "Wand of Fireballs",
+      location: "Locked chest",
       description: null,
       link: null,
       value: null,

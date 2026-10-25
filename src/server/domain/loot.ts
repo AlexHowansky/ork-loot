@@ -105,6 +105,7 @@ export function claimLoot(
       .values({
         sessionId: item.sessionId,
         name: item.name,
+        location: item.location,
         description: item.description,
         link: item.link,
         quantity,
@@ -157,6 +158,7 @@ export function releaseLoot(db: Db, who: Character, lootId: number): Loot {
           eq(loot.name, item.name),
           eq(loot.marketPct, item.marketPct),
           eq(loot.unidentified, item.unidentified),
+          sameOrNull(loot.location, item.location),
           sameOrNull(loot.description, item.description),
           sameOrNull(loot.link, item.link),
           sameOrNull(loot.value, item.value),

@@ -32,6 +32,7 @@ export function LootForm({
   const decimals = campaign.currencyDecimals;
   const [sessionId, setSessionId] = useState(item?.sessionId ?? defaultSessionId ?? view.sessions[0]?.id ?? 0);
   const [name, setName] = useState(item?.name ?? "");
+  const [location, setLocation] = useState(item?.location ?? "");
   const [description, setDescription] = useState(item?.description ?? "");
   const [link, setLink] = useState(item?.link ?? "");
   const [quantity, setQuantity] = useState(String(item?.quantity ?? 1));
@@ -59,6 +60,7 @@ export function LootForm({
       if (parsedValue === undefined) return;
       const body = {
         name,
+        location: location || null,
         description: description || null,
         link: link || null,
         quantity: Number(quantity),
@@ -127,25 +129,15 @@ export function LootForm({
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
-          <div className="fieldset py-1">
-            <label htmlFor={unidentifiedId} className="fieldset-legend pb-1">
-              Unidentified
-            </label>
-            <div className="flex items-start gap-2">
-              <input
-                id={unidentifiedId}
-                type="checkbox"
-                className="checkbox checkbox-sm mt-0.5"
-                checked={unidentified}
-                aria-describedby={`${unidentifiedId}-note`}
-                onChange={(e) => setUnidentified(e.target.checked)}
-              />
-              <p id={`${unidentifiedId}-note`} className="text-xs leading-snug text-base-content/60">
-                Players see only its name and can't claim it. It's worth nothing in totals and splits until
-                identified.
-              </p>
-            </div>
-          </div>
+          <Field label="Location" error={s.fields.location}>
+            <input
+              className={withError("input w-full", s.fields.location)}
+              placeholder="Optional"
+              maxLength={100}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </Field>
         </div>
         <Field label="Description" error={s.fields.description}>
           <textarea
@@ -213,6 +205,25 @@ export function LootForm({
               ))}
             </select>
           </Field>
+          <div className="fieldset py-1">
+            <label htmlFor={unidentifiedId} className="fieldset-legend pb-1">
+              Unidentified
+            </label>
+            <div className="flex items-start gap-2">
+              <input
+                id={unidentifiedId}
+                type="checkbox"
+                className="checkbox checkbox-sm mt-0.5"
+                checked={unidentified}
+                aria-describedby={`${unidentifiedId}-note`}
+                onChange={(e) => setUnidentified(e.target.checked)}
+              />
+              <p id={`${unidentifiedId}-note`} className="text-xs leading-snug text-base-content/60">
+                Players see only its name and can't claim it. It's worth nothing in totals and splits until
+                identified.
+              </p>
+            </div>
+          </div>
           {needsCharacter && (
             <Field label="Character" error={s.fields.characterId}>
               <select

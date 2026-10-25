@@ -178,16 +178,20 @@ they have claimed from the pool.
 * The GM can view, create, edit, and delete sessions in their campaigns.
 
 * The GM can view, create, edit, and delete loot in a session. Each loot entry
-  includes session (required), name (required, not unique), description
+  includes session (required), name (required, not unique), location
+  (optional, up to 100 characters, e.g. "Bag of holding"), description
   (optional), link (optional, http or https only), quantity (required,
   default 1), value (optional), market percentage (default 50% because we
   only get half value when we sell) and status.
 
+* The loot form puts location to the right of name. "Save and add another"
+  keeps the location, since a haul is often stowed in one place.
+
 * A loot item can be marked unidentified (off by default), from a checkbox
-  to the right of the loot form's name. Until the GM clears it:
-    * Players see the item's name, but not its description, link (whose
-      page could give its price) or value; the server never sends them
-      those. The loot table marks it with an "Unidentified" badge.
+  to the right of the loot form's status. Until the GM clears it:
+    * Players see the item's name and location, but not its description,
+      link (whose page could give its price) or value; the server never
+      sends them those. The loot table marks it with an "Unidentified" badge.
     * Players can't claim it. The GM can claim it for a character, and a
       claimed part of a stack stays unidentified.
     * Its value counts as zero everywhere: the pool, party fund, claims,
@@ -206,6 +210,9 @@ they have claimed from the pool.
 
 * When a loot item has a link, its name in the loot table links to it, in a
   new tab, for the GM and players alike.
+
+* The loot table shows each item's location in a "Location" column right
+  after the item's name. On narrow screens it appears under the name.
 
 * The loot table shows each item's status as a pill on its own, and the
   character who claimed or bought it in a separate "Claim" column.
@@ -236,7 +243,7 @@ they have claimed from the pool.
   it, ascending; clicking it again reverses the order. An arrow marks the
   sorted column and its direction. Status sorts as available, party,
   claimed, bought, sold, abandoned, and Session by the session's date.
-  Blank cells (no value, no claimant, or a value hidden from players
+  Blank cells (no location, value or claimant, or a value hidden from players
   because the item is unidentified) sort last either way. Ties fall back
   to the item name. The choice lasts while the campaign page is open,
   across tab changes.
@@ -300,6 +307,8 @@ they have claimed from the pool.
 
 * Players can release their own claims back to the pool. A released part of
   a stack merges back into the matching available row from the same session.
+  A split stack's parts keep its location; a part since moved elsewhere
+  doesn't match, and comes back as a row of its own.
 
 * The GM can claim available loot on a character's behalf from the loot table,
   choosing the character and, for a stack, how many, and can release any
