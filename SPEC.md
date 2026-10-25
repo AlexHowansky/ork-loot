@@ -135,6 +135,11 @@ they have claimed from the pool.
   whoever redeems the new code takes the character over. A page the old
   player has open goes back to the start, saying the GM gave the character
   a new join code; one that missed being told says so when next loaded.
+  The copy button beside a code copies a join link (the app's public
+  address, `APP_URL`, with the code in the URL fragment) rather than the
+  bare code. Opening the link joins straight away, as if the code had been
+  entered. If it can't (say the code is used up), the join page shows why,
+  with the code in its box.
 
 * GMs can add observers to a campaign. Each has a name (required, unique
   among the campaign's observers regardless of case) and a join code that

@@ -184,6 +184,11 @@ export interface CampaignView {
   pettyCash: PettyCashEntryView[];
   /** GM only: the campaign's observers. */
   observers?: ObserverView[];
+  /**
+   * GM only: the join page's public address, from APP_URL. A code goes
+   * after it in the fragment to make a link that fills the code in.
+   */
+  joinUrl?: string;
 }
 
 export interface PlayView extends CampaignView {

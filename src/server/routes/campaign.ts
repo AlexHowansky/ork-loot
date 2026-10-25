@@ -36,10 +36,13 @@ export function campaignRoutes(r: Router) {
 
   r.get("/api/campaigns/:id", (ctx) => {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
-    return campaignView(ctx.db, c, {
-      forGm: true,
-      isOnline: (ch) => ctx.events.isOnline(ch.id, ch.playerId),
-    });
+    return {
+      ...campaignView(ctx.db, c, {
+        forGm: true,
+        isOnline: (ch) => ctx.events.isOnline(ch.id, ch.playerId),
+      }),
+      joinUrl: `${ctx.config.appUrl}/join`,
+    };
   });
 
   r.get("/api/campaigns/:id/events", (ctx) => {

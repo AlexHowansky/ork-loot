@@ -1,32 +1,63 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, errorMessage } from "../api.ts";
 import { keys } from "../queries.ts";
 import { Field, withError } from "../components/Field.tsx";
 
-/** The join code input and its button, for embedding in any card body. */
+function fromFragment(hash: string) {
+  try {
+    return decodeURIComponent(hash.slice(1));
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * The join code input and its button, for embedding in any card body. A
+ * join link carries its code in the URL fragment and joins straight away;
+ * if that fails, the code stays in the box beside the error.
+ */
 export function JoinForm() {
-  const [code, setCode] = useState("");
+  const { pathname, hash } = useLocation();
+  const [code, setCode] = useState(() => fromFragment(hash));
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  // Strict Mode runs effects twice; a code must only be redeemed once.
+  const linkTried = useRef(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  async function join(value: string, replace = false) {
     setBusy(true);
     setError(null);
     try {
       // A code is for either a character or an observer.
-      const joined = await api.post<{ characterId: string } | { observerId: string }>("/api/join", { code });
+      const joined = await api.post<{ characterId: string } | { observerId: string }>("/api/join", { code: value });
       await qc.invalidateQueries({ queryKey: keys.me });
-      navigate("characterId" in joined ? `/play/${joined.characterId}` : `/watch/${joined.observerId}`);
+      navigate("characterId" in joined ? `/play/${joined.characterId}` : `/watch/${joined.observerId}`, {
+        replace,
+      });
     } catch (err) {
       setError(err);
     } finally {
       setBusy(false);
     }
+  }
+
+  useEffect(() => {
+    if (linkTried.current || !code.trim()) return;
+    linkTried.current = true;
+    // Drop the code from the address, so going back or reloading doesn't
+    // try a code that's now used up.
+    navigate(pathname, { replace: true });
+    void join(code, true);
+    // Only for the code the page was opened with.
+  }, []);
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    void join(code);
   }
 
   const message = error ? errorMessage(error) : undefined;

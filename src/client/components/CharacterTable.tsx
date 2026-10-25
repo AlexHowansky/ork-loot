@@ -123,6 +123,7 @@ export function CharacterTable({
                         <JoinCodeStatus
                           name={c.name}
                           joinCode={c.joinCode}
+                          joinUrl={view.joinUrl}
                           hasPlayer={c.hasPlayer}
                           online={c.online}
                           onlineTitle={`${c.name}'s player has the campaign open now.`}

@@ -85,6 +85,7 @@ export function ObserverTable({ view }: { view: CampaignView }) {
                   <JoinCodeStatus
                     name={o.name}
                     joinCode={o.joinCode}
+                    joinUrl={view.joinUrl}
                     hasPlayer={o.hasPlayer}
                     online={o.online}
                     onlineTitle={`${o.name} has the campaign open now.`}

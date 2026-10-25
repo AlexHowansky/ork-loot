@@ -362,6 +362,15 @@ describe("campaign access", () => {
 });
 
 describe("join codes", () => {
+  test("the GM's view links to the join page from APP_URL, players' don't", async () => {
+    const { view } = await seed();
+    const gmView = await view();
+    expect(gmView.joinUrl).toBe(`${ORIGIN}/join`);
+    const { player, res } = await join(gmView.characters[0]!.joinCode!);
+    const play = await player.get<PlayView>(`/api/play/${res.body.characterId}`);
+    expect(play.body.joinUrl).toBeUndefined();
+  });
+
   test("a code works once and regenerating replaces it", async () => {
     const { characterIds, view } = await seed();
     const code = (await view()).characters.find((c) => c.name === "Amiri")!.joinCode!;
