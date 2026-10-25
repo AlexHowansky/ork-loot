@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { allocate, pettyCashFlow } from "../src/server/domain/split.ts";
-import { formatAmount, parseAmount, parseSignedAmount, subtotal } from "../src/shared/money.ts";
+import { formatAmount, MAX_MONEY, parseAmount, parseSignedAmount, subtotal } from "../src/shared/money.ts";
 
 describe("subtotal", () => {
   test("multiplies quantity, value and market percentage", () => {
@@ -9,6 +9,12 @@ describe("subtotal", () => {
     expect(subtotal(2, null, 50)).toBe(0);
     expect(subtotal(1, 1234, 100)).toBe(1234);
     expect(subtotal(7, 3, 33)).toBe(7); // 6.93
+  });
+
+  test("stays exact at the largest amount", () => {
+    expect(Number.isSafeInteger(MAX_MONEY * 100)).toBe(true);
+    expect(subtotal(1, MAX_MONEY, 100)).toBe(MAX_MONEY);
+    expect(subtotal(1, MAX_MONEY, 50)).toBe(Math.round(MAX_MONEY / 2));
   });
 });
 

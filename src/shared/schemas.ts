@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { LOOT_STATUSES } from "./status.ts";
-import { MAX_DECIMALS } from "./money.ts";
+import { MAX_DECIMALS, MAX_MONEY } from "./money.ts";
 
 const name = (label: string, max = 100) =>
   z
@@ -100,7 +100,7 @@ export const campaignSchema = z
     pettyCashHold: z
       .int({ error: "Petty cash hold isn't a valid amount." })
       .min(0, { error: "Petty cash hold can't be negative." })
-      .max(Number.MAX_SAFE_INTEGER, { error: "That petty cash hold is too large." })
+      .max(MAX_MONEY, { error: "That petty cash hold is too large." })
       .default(0),
   })
   .refine((c) => c.pettyCashHold % 10 ** c.currencyDecimals === 0, {
@@ -134,6 +134,7 @@ const lootFields = z.object({
   value: z
     .int({ error: "Value isn't a valid amount." })
     .min(0, { error: "Value can't be negative." })
+    .max(MAX_MONEY, { error: "That value is too large." })
     .nullable(),
   marketPct: z
     .int({ error: "Market % must be a whole number." })
@@ -174,8 +175,8 @@ export const pettyCashEntrySchema = z.object({
   description: name("Description", 200),
   amount: z
     .int({ error: "Amount isn't a valid amount." })
-    .min(-Number.MAX_SAFE_INTEGER, { error: "That amount is too large." })
-    .max(Number.MAX_SAFE_INTEGER, { error: "That amount is too large." })
+    .min(-MAX_MONEY, { error: "That amount is too large." })
+    .max(MAX_MONEY, { error: "That amount is too large." })
     .refine((n) => n !== 0, { error: "Amount can't be zero." }),
 });
 

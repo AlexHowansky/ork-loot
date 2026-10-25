@@ -280,6 +280,13 @@ they have claimed from the pool.
 * Each loot row should calculate a subtotal of quantity times value, further
   adjusted for market percentage.
 
+* A campaign can record at most 90,071,992,547,409 minor units (a hundredth
+  of the largest whole number a browser counts exactly), so its totals never
+  lose precision. No single value, petty cash entry or hold may exceed it,
+  and an added or edited item or petty cash entry is refused if it would
+  bring the subtotals of all the campaign's loot (whatever its status) plus
+  petty cash above it.
+
 * For each campaign, keep a running total of the value of the loot pool. Keep
   track of each character's share of the value.
 

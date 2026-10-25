@@ -11,7 +11,7 @@ import {
   type Campaign,
   type Loot,
 } from "../db/schema.ts";
-import { subtotal } from "../../shared/money.ts";
+import { formatMoney, MAX_MONEY, subtotal } from "../../shared/money.ts";
 import type {
   CampaignInfo,
   CampaignSummary,
@@ -22,7 +22,7 @@ import type {
   SplitView,
 } from "../../shared/types.ts";
 import { allocate, pettyCashFlow } from "./split.ts";
-import { notFound } from "../lib/errors.ts";
+import { badRequest, notFound } from "../lib/errors.ts";
 
 export function campaignInfo(c: Campaign): CampaignInfo {
   return {
@@ -139,6 +139,29 @@ export function computePool(
     pettyCashIn: flow.pettyCashIn,
   };
   return { pool, allocations, leftover, total: flow.total };
+}
+
+/**
+ * Refuses a change that takes the campaign's money past `MAX_MONEY`: the
+ * subtotals of all its loot, whatever its status, plus petty cash. Called
+ * inside the change's transaction after it is written, so throwing rolls
+ * it back; `field` names the form field to mark.
+ */
+export function assertMoneyInRange(db: Db, campaignId: string, field: string): void {
+  const c = db.select().from(campaign).where(eq(campaign.id, campaignId)).get();
+  if (!c) throw notFound("That campaign");
+  const total = campaignLoot(db, campaignId).reduce(
+    (n, r) => n + subtotal(r.quantity, r.value, r.marketPct),
+    c.pettyCash,
+  );
+  if (total > MAX_MONEY) {
+    const most = formatMoney(MAX_MONEY, c.currencyDecimals, c.currencyLabel);
+    throw badRequest(
+      `That would bring the campaign's loot and petty cash to more than ${most}, ` +
+        "the most it can record.",
+      { [field]: "That's more than the campaign can record." },
+    );
+  }
 }
 
 export function listCampaigns(db: Db, gmId: string): CampaignSummary[] {

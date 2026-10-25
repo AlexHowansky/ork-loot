@@ -10,6 +10,7 @@ import {
   setReferenceReply,
 } from "./helpers.ts";
 import { campaign, passwordReset } from "../src/server/db/schema.ts";
+import { MAX_MONEY } from "../src/shared/money.ts";
 import type { CampaignView, CharacterView, LiveNotice, PlayView } from "../src/shared/types.ts";
 
 let ctx: ReturnType<typeof makeApp>;
@@ -1005,6 +1006,37 @@ describe("petty cash", () => {
     const now = await view();
     expect(now.campaign.pettyCash).toBe(0);
     expect(now.pettyCash.map((e) => e.description)).toEqual(["Refund", "Potions"]);
+  });
+
+  test("loot and petty cash can't take the campaign past what it can record", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    const entries = `/api/campaigns/${campaignId}/petty-cash`;
+    const entry = (amount: number) =>
+      gmA.post(entries, { date: "2026-02-01", description: "Hoard", amount });
+    const addLoot = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gold", ...body });
+
+    expect((await entry(MAX_MONEY + 1)).body.fields.amount).toBe("That amount is too large.");
+    expect((await addLoot({ value: MAX_MONEY + 1 })).body.fields.value).toBe("That value is too large.");
+    expect((await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, pettyCashHold: MAX_MONEY + 100 })).status).toBe(400);
+
+    // Each amount is allowed, but not quantity × value, nor the two together.
+    const stack = await addLoot({ value: MAX_MONEY, quantity: 3 });
+    expect(stack.status).toBe(400);
+    expect(stack.body.fields.value).toBe("That's more than the campaign can record.");
+    const item = (await addLoot({ value: MAX_MONEY, marketPct: 100 })).body;
+    const over = await entry(1);
+    expect(over.status).toBe(400);
+    expect(over.body.error).toContain("the most it can record");
+    expect((await gmA.patch(`/api/loot/${item.id}`, { quantity: 2 })).status).toBe(400);
+    let now = await view();
+    expect(now.campaign.pettyCash).toBe(0);
+    expect(now.loot.map((l) => [l.quantity, l.subtotal])).toEqual([[1, MAX_MONEY]]);
+
+    // Making room lets it through.
+    expect((await gmA.patch(`/api/loot/${item.id}`, { marketPct: 50 })).status).toBe(200);
+    expect((await entry(1000)).status).toBe(200);
+    now = await view();
+    expect(now.campaign.pettyCash).toBe(1000);
   });
 
   test("decimals lock once petty cash has been recorded", async () => {

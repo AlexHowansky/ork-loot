@@ -5,7 +5,7 @@ import { requireGm } from "../lib/auth.ts";
 import { badRequest, notFound } from "../lib/errors.ts";
 import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
-import { ownedCampaign } from "../domain/campaign.ts";
+import { assertMoneyInRange, ownedCampaign } from "../domain/campaign.ts";
 import { formatMoney } from "../../shared/money.ts";
 import { pettyCashEntrySchema } from "../../shared/schemas.ts";
 
@@ -27,8 +27,9 @@ function ownedEntry(db: Db, gmId: string, entryId: number) {
 }
 
 /**
- * Moves petty cash by `change`, refusing to take it below zero. Reads the
- * balance inside the caller's transaction, so it can't race another write.
+ * Moves petty cash by `change`, refusing to take it below zero or the
+ * campaign past what it can record. Reads the balance inside the caller's
+ * transaction, so it can't race another write.
  */
 function adjustPettyCash(tx: Db, campaignId: string, change: number) {
   const c = tx.select().from(campaign).where(eq(campaign.id, campaignId)).get();
@@ -45,6 +46,7 @@ function adjustPettyCash(tx: Db, campaignId: string, change: number) {
     .set({ pettyCash: c.pettyCash + change })
     .where(eq(campaign.id, campaignId))
     .run();
+  if (change > 0) assertMoneyInRange(tx, campaignId, "amount");
 }
 
 export function pettyCashRoutes(r: Router) {

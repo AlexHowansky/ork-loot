@@ -5,7 +5,7 @@ import { requireGm } from "../lib/auth.ts";
 import { badRequest, notFound } from "../lib/errors.ts";
 import { idParam, readJson, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
-import { lootView } from "../domain/campaign.ts";
+import { assertMoneyInRange, lootView } from "../domain/campaign.ts";
 import { assertCanClaim, claimLoot, claimNotice, releaseLoot } from "../domain/loot.ts";
 import { ownedSession } from "./session.ts";
 import { gmClaimSchema, lootSchema, lootUpdateSchema } from "../../shared/schemas.ts";
@@ -63,11 +63,15 @@ export function lootRoutes(r: Router) {
     const { session: s } = ownedSession(ctx.db, requireGm(ctx).id, idParam(ctx));
     const input = await readJson(ctx, lootSchema);
     const characterId = checkOwner(ctx.db, s.campaignId, input.status, input.characterId);
-    const row = ctx.db
-      .insert(loot)
-      .values({ ...input, characterId, sessionId: s.id })
-      .returning()
-      .get();
+    const row = ctx.db.transaction((tx) => {
+      const row = tx
+        .insert(loot)
+        .values({ ...input, characterId, sessionId: s.id })
+        .returning()
+        .get();
+      assertMoneyInRange(tx, s.campaignId, "value");
+      return row;
+    });
     ctx.changed(s.campaignId);
     logger.info("loot added", { requestId: ctx.requestId, lootId: row.id });
     return lootView(row);
@@ -83,12 +87,16 @@ export function lootRoutes(r: Router) {
       status,
       input.characterId !== undefined ? input.characterId : item.characterId,
     );
-    const row = ctx.db
-      .update(loot)
-      .set({ ...input, status, characterId })
-      .where(eq(loot.id, item.id))
-      .returning()
-      .get();
+    const row = ctx.db.transaction((tx) => {
+      const row = tx
+        .update(loot)
+        .set({ ...input, status, characterId })
+        .where(eq(loot.id, item.id))
+        .returning()
+        .get();
+      assertMoneyInRange(tx, campaignId, "value");
+      return row;
+    });
     ctx.changed(campaignId);
     logger.info("loot updated", { requestId: ctx.requestId, lootId: item.id, status });
     return lootView(row!);
