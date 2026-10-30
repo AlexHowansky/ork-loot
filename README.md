@@ -5,6 +5,8 @@ the loot the party finds, session by session. Players claim the pieces they
 want, and when the party sells off the rest, the app splits the proceeds by
 shares, taking each character's claims out of what they're owed.
 
+![A campaign's loot table, with split totals above it](example.webp)
+
 ## Features
 
 * GM accounts, with campaigns, sessions, characters and loot.
