@@ -195,16 +195,25 @@ they have claimed from the pool.
   "Characters", listing the campaign's observers with their join codes.
 
 * The "Petty cash" tab is the petty cash ledger, newest first, showing each
-  entry's date, description, amount (negative when paid out) and the balance
-  after it. The GM can add, edit and delete entries, each with a date
-  (default today), a description and a non-zero amount: positive for money
-  paid in (e.g. job earnings), negative for money paid out (e.g. buying
-  goods or services). An entry that would take petty cash below zero, as
-  added, edited or deleted, is refused. Each split that changes petty cash
-  adds a "Loot split" entry of its own, showing what was kept back for the
-  hold, paid out above it, or left over; it can't be edited or deleted, and
-  goes when the split is undone. Players see the ledger but can't change
-  it.
+  entry's date, session, description, amount (negative when paid out) and
+  the balance after it. The GM can add, edit and delete entries, each with
+  a session (default the latest), a description and a non-zero amount:
+  positive for money paid in (e.g. job earnings), negative for money paid
+  out (e.g. buying goods or services). Adding one needs a session to exist.
+  An entry that would take petty cash below zero, as added, edited or
+  deleted, is refused. Each split that changes petty cash adds a "Loot
+  split" entry of its own, showing what was kept back for the hold, paid
+  out above it, or left over; it belongs to no session, can't be edited or
+  deleted, and goes when the split is undone. Players see the ledger but
+  can't change it.
+
+* The ledger's Session column shows the session's title, or a dash when
+  the session has no title or the entry has no session.
+
+* An entry's date is its session's date, and changes with it. Deleting a
+  session keeps its entries, and so the balance: each stays in the ledger
+  with its date but no session (the confirmation says so), and can be given
+  another session by editing it.
 
 * The GM can view, create, edit, and delete sessions in their campaigns.
 

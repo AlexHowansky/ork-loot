@@ -166,6 +166,8 @@ export interface SplitView {
 export interface PettyCashEntryView {
   id: number;
   date: string;
+  /** Null for a split's entry, or once the entry's session is deleted. */
+  sessionId: number | null;
   description: string;
   /** Paid in when positive, paid out when negative. */
   amount: number;

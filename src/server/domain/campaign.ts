@@ -284,6 +284,7 @@ export function pettyCashLedger(db: Db, campaignId: string): PettyCashEntryView[
     .select({
       id: pettyCashEntry.id,
       date: pettyCashEntry.date,
+      sessionId: pettyCashEntry.sessionId,
       description: pettyCashEntry.description,
       amount: pettyCashEntry.amount,
       splitId: pettyCashEntry.splitId,

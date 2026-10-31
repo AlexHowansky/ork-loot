@@ -225,7 +225,8 @@ export const splitShare = sqliteTable(
 /**
  * One change to a campaign's petty cash: paid in when positive, paid out
  * when negative. A split's own change carries its `splitId` and goes when
- * the split is undone; the GM writes the rest by hand.
+ * the split is undone; the GM writes the rest by hand, against a session.
+ * `date` follows that session's, and stays if the session is deleted.
  */
 export const pettyCashEntry = sqliteTable(
   "petty_cash_entry",
@@ -237,12 +238,18 @@ export const pettyCashEntry = sqliteTable(
     date: text("date").notNull(),
     description: text("description").notNull(),
     amount: integer("amount").notNull(),
+    sessionId: integer("session_id").references(() => session.id, {
+      onDelete: "set null",
+    }),
     splitId: integer("split_id").references(() => split.id, {
       onDelete: "cascade",
     }),
     createdAt: createdAt(),
   },
-  (t) => [index("petty_cash_entry_campaign_idx").on(t.campaignId)],
+  (t) => [
+    index("petty_cash_entry_campaign_idx").on(t.campaignId),
+    index("petty_cash_entry_session_idx").on(t.sessionId),
+  ],
 );
 
 export const loot = sqliteTable(

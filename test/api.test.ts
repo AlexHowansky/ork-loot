@@ -1100,10 +1100,11 @@ describe("petty cash", () => {
   });
 
   test("the GM records adjustments, which can't overdraw petty cash", async () => {
-    const { campaignId, characterIds, view } = await seed();
+    const { campaignId, characterIds, sessionId, view } = await seed();
+    const later = (await gmA.post(`/api/campaigns/${campaignId}/sessions`, { date: "2026-02-02" })).body;
     const entries = `/api/campaigns/${campaignId}/petty-cash`;
     const entry = (amount: number, description = "Job pay") =>
-      gmA.post(entries, { date: "2026-02-01", description, amount });
+      gmA.post(entries, { sessionId, description, amount });
 
     const paidIn = (await entry(500)).body;
     expect((await view()).campaign.pettyCash).toBe(500);
@@ -1115,16 +1116,16 @@ describe("petty cash", () => {
     expect((await view()).campaign.pettyCash).toBe(300);
 
     expect((await entry(0)).body.fields.amount).toBeDefined();
-    expect((await gmA.post(entries, { date: "2026-02-01", description: "", amount: 1 })).body.fields.description).toBeDefined();
+    expect((await gmA.post(entries, { sessionId, description: "", amount: 1 })).body.fields.description).toBeDefined();
 
     // Editing moves the balance by the difference.
-    expect((await gmA.patch(`/api/petty-cash/${paidIn.id}`, { date: "2026-02-01", description: "Job pay", amount: 100 })).status).toBe(400);
-    expect((await gmA.patch(`/api/petty-cash/${paidIn.id}`, { date: "2026-02-02", description: "Bounty", amount: 300 })).status).toBe(200);
+    expect((await gmA.patch(`/api/petty-cash/${paidIn.id}`, { sessionId, description: "Job pay", amount: 100 })).status).toBe(400);
+    expect((await gmA.patch(`/api/petty-cash/${paidIn.id}`, { sessionId: later.id, description: "Bounty", amount: 300 })).status).toBe(200);
     let now = await view();
     expect(now.campaign.pettyCash).toBe(100);
     expect(now.pettyCash.map((e) => [e.date, e.description, e.amount])).toEqual([
       ["2026-02-02", "Bounty", 300],
-      ["2026-02-01", "Inn", -200],
+      ["2026-01-05", "Inn", -200],
     ]);
     expect((await gmA.del(`/api/petty-cash/${paidIn.id}`)).status).toBe(400);
     expect((await gmA.del(`/api/petty-cash/${inn.id}`)).status).toBe(200);
@@ -1135,10 +1136,10 @@ describe("petty cash", () => {
     const { player } = await join(code);
     const play = (await player.get<PlayView>(`/api/play/${characterIds[0]}`)).body;
     expect(play.pettyCash.map((e) => e.amount)).toEqual([300]);
-    expect((await player.post(entries, { date: "2026-02-01", description: "x", amount: 1 })).status).toBe(401);
+    expect((await player.post(entries, { sessionId, description: "x", amount: 1 })).status).toBe(401);
     const gmB = new Client(ctx.app);
     await gmB.login("bob@example.com");
-    expect((await gmB.post(entries, { date: "2026-02-01", description: "x", amount: 1 })).status).toBe(404);
+    expect((await gmB.post(entries, { sessionId, description: "x", amount: 1 })).status).toBe(404);
     expect((await gmB.del(`/api/petty-cash/${paidIn.id}`)).status).toBe(404);
     now = await view();
     expect(now.campaign.pettyCash).toBe(300);
@@ -1150,18 +1151,18 @@ describe("petty cash", () => {
     await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Statue", value: 2006 });
     const split = (await gmA.post(`/api/campaigns/${campaignId}/split`)).body;
     const [splitEntry] = (await view()).pettyCash;
-    const body = { date: "2026-02-01", description: "x", amount: 1 };
+    const body = { sessionId, description: "x", amount: 1 };
     expect((await gmA.patch(`/api/petty-cash/${splitEntry!.id}`, body)).status).toBe(400);
     expect((await gmA.del(`/api/petty-cash/${splitEntry!.id}`)).status).toBe(400);
 
     // Spending what the split put in blocks undoing it until it's paid back.
     const entries = `/api/campaigns/${campaignId}/petty-cash`;
-    await gmA.post(entries, { date: "2026-02-01", description: "Potions", amount: -103 });
+    await gmA.post(entries, { sessionId, description: "Potions", amount: -103 });
     const undo = () => gmA.del(`/api/campaigns/${campaignId}/splits/${split.id}`);
     const refused = await undo();
     expect(refused.status).toBe(400);
     expect(refused.body.error).toContain("can't be undone");
-    await gmA.post(entries, { date: "2026-02-02", description: "Refund", amount: 103 });
+    await gmA.post(entries, { sessionId, description: "Refund", amount: 103 });
     expect((await undo()).status).toBe(200);
     const now = await view();
     expect(now.campaign.pettyCash).toBe(0);
@@ -1172,7 +1173,7 @@ describe("petty cash", () => {
     const { campaignId, sessionId, view } = await seed();
     const entries = `/api/campaigns/${campaignId}/petty-cash`;
     const entry = (amount: number) =>
-      gmA.post(entries, { date: "2026-02-01", description: "Hoard", amount });
+      gmA.post(entries, { sessionId, description: "Hoard", amount });
     const addLoot = (body: object) => gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Gold", ...body });
 
     expect((await entry(MAX_MONEY + 1)).body.fields.amount).toBe("That amount is too large.");
@@ -1199,11 +1200,61 @@ describe("petty cash", () => {
     expect(now.campaign.pettyCash).toBe(1000);
   });
 
-  test("decimals lock once petty cash has been recorded", async () => {
-    const { campaignId } = await seed();
+  test("an entry takes its session's date and outlives the session", async () => {
+    const { campaignId, sessionId, view } = await seed();
     const entries = `/api/campaigns/${campaignId}/petty-cash`;
-    await gmA.post(entries, { date: "2026-02-01", description: "In", amount: 5 });
-    await gmA.post(entries, { date: "2026-02-01", description: "Out", amount: -5 });
+    const sessions = `/api/campaigns/${campaignId}/sessions`;
+
+    expect((await gmA.post(entries, { description: "Inn", amount: 100 })).body.fields.sessionId).toBeDefined();
+    const other = (await gmA.post("/api/campaigns", campaignBody)).body;
+    const foreign = (await gmA.post(`/api/campaigns/${other.id}/sessions`, { date: "2026-03-01" })).body;
+    const refused = await gmA.post(entries, { sessionId: foreign.id, description: "Inn", amount: 100 });
+    expect(refused.status).toBe(400);
+    expect(refused.body.fields.sessionId).toBeDefined();
+    expect((await view()).campaign.pettyCash).toBe(0);
+
+    const { id } = (await gmA.post(entries, { sessionId, description: "Inn", amount: 100 })).body;
+    expect((await view()).pettyCash).toMatchObject([{ id, date: "2026-01-05", sessionId }]);
+
+    // Correcting the session's date moves its entries with it.
+    await gmA.patch(`/api/sessions/${sessionId}`, { date: "2026-01-06" });
+    expect((await view()).pettyCash).toMatchObject([{ date: "2026-01-06", sessionId }]);
+
+    // A linked entry can move to another session but can't lose its link.
+    const body = { description: "Inn", amount: 100 };
+    const unlink = await gmA.patch(`/api/petty-cash/${id}`, { ...body, sessionId: null });
+    expect(unlink.body.fields.sessionId).toBeDefined();
+
+    // Deleting the session leaves the entry and the balance as they were.
+    expect((await gmA.del(`/api/sessions/${sessionId}`)).status).toBe(200);
+    let now = await view();
+    expect(now.campaign.pettyCash).toBe(100);
+    expect(now.pettyCash).toMatchObject([{ date: "2026-01-06", sessionId: null }]);
+
+    // Without a session it keeps its date until it's given a new one.
+    expect((await gmA.patch(`/api/petty-cash/${id}`, { ...body, sessionId: null, amount: 200 })).status).toBe(200);
+    now = await view();
+    expect(now.pettyCash).toMatchObject([{ date: "2026-01-06", sessionId: null, amount: 200 }]);
+    const next = (await gmA.post(sessions, { date: "2026-04-01" })).body;
+    expect((await gmA.patch(`/api/petty-cash/${id}`, { ...body, sessionId: next.id })).status).toBe(200);
+    expect((await view()).pettyCash).toMatchObject([{ date: "2026-04-01", sessionId: next.id }]);
+  });
+
+  test("a split's entry doesn't belong to a session", async () => {
+    const { campaignId, sessionId, view } = await seed();
+    await gmA.post(`/api/sessions/${sessionId}/loot`, { name: "Statue", value: 2006 });
+    await gmA.post(`/api/campaigns/${campaignId}/split`);
+    const [entry] = (await view()).pettyCash;
+    expect(entry!.sessionId).toBeNull();
+    await gmA.patch(`/api/sessions/${sessionId}`, { date: "2020-01-01" });
+    expect((await view()).pettyCash[0]!.date).toBe(entry!.date);
+  });
+
+  test("decimals lock once petty cash has been recorded", async () => {
+    const { campaignId, sessionId } = await seed();
+    const entries = `/api/campaigns/${campaignId}/petty-cash`;
+    await gmA.post(entries, { sessionId, description: "In", amount: 5 });
+    await gmA.post(entries, { sessionId, description: "Out", amount: -5 });
     const res = await gmA.patch(`/api/campaigns/${campaignId}`, { ...campaignBody, currencyDecimals: 0 });
     expect(res.status).toBe(400);
     expect(res.body.fields.currencyDecimals).toBeDefined();

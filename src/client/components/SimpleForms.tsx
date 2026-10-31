@@ -193,17 +193,20 @@ export function SessionForm({
 /** Adds or edits a hand-written petty cash entry. */
 export function PettyCashForm({
   campaign,
+  sessions,
   entry,
   onClose,
   onSaved,
 }: {
   campaign: CampaignInfo;
+  sessions: SessionView[];
   entry?: PettyCashEntryView;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const decimals = campaign.currencyDecimals;
-  const [date, setDate] = useState(entry?.date ?? today());
+  // An entry whose session was deleted stays without one until it's given one.
+  const [sessionId, setSessionId] = useState<number | null>(entry ? entry.sessionId : (sessions[0]?.id ?? null));
   const [description, setDescription] = useState(entry?.description ?? "");
   const [amount, setAmount] = useState(toInput(entry?.amount ?? null, decimals));
   const s = useSubmit();
@@ -217,7 +220,7 @@ export function PettyCashForm({
   const submit = () =>
     s.run(async () => {
       if (parsed === undefined) return;
-      const body = { date, description, amount: parsed ?? 0 };
+      const body = { sessionId, description, amount: parsed ?? 0 };
       if (entry) await api.patch(`/api/petty-cash/${entry.id}`, body);
       else await api.post(`/api/campaigns/${campaign.id}/petty-cash`, body);
       onSaved();
@@ -237,8 +240,20 @@ export function PettyCashForm({
     >
       <div className="w-80 max-w-full">
         <FormError message={s.hasFieldErrors ? null : s.message} />
-        <Field label="Date" error={s.fields.date}>
-          <input type="date" className={withError("input w-full", s.fields.date)} value={date} onChange={(e) => setDate(e.target.value)} />
+        <Field label="Session" error={s.fields.sessionId}>
+          <select
+            className={withError("select w-full", s.fields.sessionId)}
+            value={sessionId ?? ""}
+            onChange={(e) => setSessionId(e.target.value ? Number(e.target.value) : null)}
+          >
+            {entry && entry.sessionId === null && <option value="">{entry.date} (no session)</option>}
+            {sessions.map((session) => (
+              <option key={session.id} value={session.id}>
+                {session.date}
+                {session.title ? ` — ${session.title}` : ""}
+              </option>
+            ))}
+          </select>
         </Field>
         <Field label="Description" error={s.fields.description}>
           <input

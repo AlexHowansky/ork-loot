@@ -176,13 +176,18 @@ export const gmClaimSchema = claimSchema.omit({ lootId: true }).extend({
 
 /** A hand-written petty cash adjustment: paid in, or out when negative. */
 export const pettyCashEntrySchema = z.object({
-  date: isoDate,
+  sessionId: z.int({ error: "Choose a session." }),
   description: name("Description", 200),
   amount: z
     .int({ error: "Amount isn't a valid amount." })
     .min(-MAX_MONEY, { error: "That amount is too large." })
     .max(MAX_MONEY, { error: "That amount is too large." })
     .refine((n) => n !== 0, { error: "Amount can't be zero." }),
+});
+
+/** An entry that has no session (its own was deleted) may stay without one. */
+export const pettyCashEntryUpdateSchema = pettyCashEntrySchema.extend({
+  sessionId: pettyCashEntrySchema.shape.sessionId.nullable(),
 });
 
 export type CampaignInput = z.infer<typeof campaignSchema>;

@@ -24,12 +24,16 @@ export function SessionTable({
   const gm = mode.kind === "gm";
 
   async function remove(s: SessionView) {
+    const entries = view.pettyCash.filter((e) => e.sessionId === s.id).length;
     const ok = await ask({
       title: `Delete the ${s.date} session?`,
       message: (
         <p>
           {s.itemCount > 0
             ? `Its ${s.itemCount} loot ${s.itemCount === 1 ? "item is" : "items are"} deleted too. `
+            : ""}
+          {entries > 0
+            ? `Its ${entries} petty cash ${entries === 1 ? "entry stays" : "entries stay"} in the ledger. `
             : ""}
           Past split payouts stay in the history.
         </p>

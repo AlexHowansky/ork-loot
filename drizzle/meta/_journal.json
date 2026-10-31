@@ -15,6 +15,13 @@
       "when": 1792956761662,
       "tag": "0001_observer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793413750157,
+      "tag": "0002_petty_cash_session",
+      "breakpoints": true
     }
   ]
 }

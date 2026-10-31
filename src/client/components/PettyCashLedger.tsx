@@ -19,6 +19,7 @@ export function PettyCashLedger({ view, mode }: { view: CampaignView; mode: Mode
   const gm = mode.kind === "gm";
   const { campaign } = view;
   const money = (n: number) => formatMoney(n, campaign.currencyDecimals, campaign.currencyLabel);
+  const sessionById = new Map(view.sessions.map((s) => [s.id, s]));
 
   // The ledger is newest first; balances build up from the oldest entry.
   const balances = new Map<number, number>();
@@ -66,9 +67,16 @@ export function PettyCashLedger({ view, mode }: { view: CampaignView; mode: Mode
     <div>
       {gm && (
         <div className="mb-2 flex justify-end">
-          <button type="button" className="btn btn-sm btn-primary" onClick={() => setEditing("new")}>
-            <Icon icon={faPlus} /> Add entry
-          </button>
+          <span className={view.sessions.length ? "" : "tooltip tooltip-left"} data-tip="Create a session first">
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              disabled={!view.sessions.length}
+              onClick={() => setEditing("new")}
+            >
+              <Icon icon={faPlus} /> Add entry
+            </button>
+          </span>
         </div>
       )}
       {view.pettyCash.length === 0 ? (
@@ -81,6 +89,7 @@ export function PettyCashLedger({ view, mode }: { view: CampaignView; mode: Mode
             <thead>
               <tr>
                 <th>Date</th>
+                <th>Session</th>
                 <th>Description</th>
                 <th className="text-right">Amount</th>
                 <th className="text-right">Balance</th>
@@ -94,9 +103,11 @@ export function PettyCashLedger({ view, mode }: { view: CampaignView; mode: Mode
             <tbody>
               {view.pettyCash.map((e) => {
                 const detail = e.splitId === null ? null : splitDetail(e.splitId);
+                const session = e.sessionId === null ? undefined : sessionById.get(e.sessionId);
                 return (
                   <tr key={e.id}>
                     <td className="whitespace-nowrap font-medium">{e.date}</td>
+                    <td>{session?.title ?? <span className="text-base-content/50">—</span>}</td>
                     <td>
                       {e.splitId !== null && <Icon icon={faScaleBalanced} className="mr-1 text-base-content/60" />}
                       {e.description}
@@ -143,6 +154,7 @@ export function PettyCashLedger({ view, mode }: { view: CampaignView; mode: Mode
       {editing && (
         <PettyCashForm
           campaign={campaign}
+          sessions={view.sessions}
           entry={editing === "new" ? undefined : editing}
           onClose={() => setEditing(null)}
           onSaved={refresh}

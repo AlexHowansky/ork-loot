@@ -1,13 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import type { DbOrTx as Db } from "../db/client.ts";
-import { campaign, pettyCashEntry } from "../db/schema.ts";
+import { campaign, pettyCashEntry, session } from "../db/schema.ts";
 import { requireGm } from "../lib/auth.ts";
 import { badRequest, notFound } from "../lib/errors.ts";
 import { idParam, readJson, uuidParam, type Router } from "../lib/http.ts";
 import { logger } from "../lib/logger.ts";
 import { assertMoneyInRange, ownedCampaign } from "../domain/campaign.ts";
 import { formatMoney } from "../../shared/money.ts";
-import { pettyCashEntrySchema } from "../../shared/schemas.ts";
+import { pettyCashEntrySchema, pettyCashEntryUpdateSchema } from "../../shared/schemas.ts";
 
 /** A hand-written ledger entry in a campaign `gmId` runs; else a 404. */
 function ownedEntry(db: Db, gmId: string, entryId: number) {
@@ -24,6 +24,21 @@ function ownedEntry(db: Db, gmId: string, entryId: number) {
     );
   }
   return row;
+}
+
+/** The date of a session in this campaign; anything else is a field error. */
+function sessionDate(db: Db, campaignId: string, sessionId: number) {
+  const row = db
+    .select({ date: session.date })
+    .from(session)
+    .where(and(eq(session.id, sessionId), eq(session.campaignId, campaignId)))
+    .get();
+  if (!row) {
+    throw badRequest("That session isn't in this campaign.", {
+      sessionId: "Choose a session from this campaign.",
+    });
+  }
+  return row.date;
 }
 
 /**
@@ -54,10 +69,11 @@ export function pettyCashRoutes(r: Router) {
     const c = ownedCampaign(ctx.db, requireGm(ctx).id, uuidParam(ctx));
     const input = await readJson(ctx, pettyCashEntrySchema);
     const row = ctx.db.transaction((tx) => {
+      const date = sessionDate(tx, c.id, input.sessionId);
       adjustPettyCash(tx, c.id, input.amount);
       return tx
         .insert(pettyCashEntry)
-        .values({ ...input, campaignId: c.id })
+        .values({ ...input, date, campaignId: c.id })
         .returning()
         .get();
     });
@@ -73,10 +89,15 @@ export function pettyCashRoutes(r: Router) {
 
   r.patch("/api/petty-cash/:id", async (ctx) => {
     const { entry } = ownedEntry(ctx.db, requireGm(ctx).id, idParam(ctx));
-    const input = await readJson(ctx, pettyCashEntrySchema);
+    const input = await readJson(ctx, pettyCashEntryUpdateSchema);
+    if (input.sessionId === null && entry.sessionId !== null) {
+      throw badRequest("Choose a session for this entry.", { sessionId: "Choose a session." });
+    }
     ctx.db.transaction((tx) => {
+      const date =
+        input.sessionId === null ? entry.date : sessionDate(tx, entry.campaignId, input.sessionId);
       adjustPettyCash(tx, entry.campaignId, input.amount - entry.amount);
-      tx.update(pettyCashEntry).set(input).where(eq(pettyCashEntry.id, entry.id)).run();
+      tx.update(pettyCashEntry).set({ ...input, date }).where(eq(pettyCashEntry.id, entry.id)).run();
     });
     ctx.changed(entry.campaignId);
     logger.info("petty cash entry changed", {
